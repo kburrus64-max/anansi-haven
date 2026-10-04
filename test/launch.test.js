@@ -87,15 +87,15 @@ test("https base URLs from x-forwarded-proto or config; beta wording everywhere;
     assert.doesNotMatch(txt, /local prototype/i); assert.match(txt, /free public beta/i);
     for (const t of ["prop_firm_rules", "slopscore_check", "anansi_free_data"]) assert.ok(txt.includes(t), t);
   }
-  const src = fs.readdirSync(new URL("../src/", import.meta.url)).map((f) => fs.readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
+  const src = fs.readdirSync(new URL("../src/", import.meta.url)).filter((f) => f.endsWith(".js")).map((f) => fs.readFileSync(new URL(`../src/${f}`, import.meta.url), "utf8")).join("\n");
   assert.doesNotMatch(src, /local prototype/i);
 });
 
 test("payments: all rails OFF; receiving address is the Haven wallet, never the RevenueSplitter", () => {
   assert.equal(CFG.PAYMENTS.enabled, false); assert.equal(CFG.ANANSI.enabled, false); assert.equal(CFG.PAYMENTS.x402, false);
   assert.match(CFG.PAYMENTS.receiveAddress, /^0x[0-9a-fA-F]{40}$/); assert.notEqual(CFG.PAYMENTS.receiveAddress.toLowerCase(), SPLITTER.toLowerCase());
-  const c = agentCard("https://h"); const x = c.capabilities.extensions[0].params;
-  assert.equal(x.pay_to, null); assert.equal(x.receiving_address, CFG.PAYMENTS.receiveAddress); assert.match(x.status, /off/);
+  const c = agentCard("https://h"); assert.equal(c.capabilities.extensions, undefined, "no x402 extension while payments are off");
+  assert.equal(agentCard("https://h", "0.3").capabilities.extensions, undefined);
   const all = [JSON.stringify(c), guideText("https://h"), landingPage("https://h")].join(" ");
   assert.ok(!all.toLowerCase().includes(SPLITTER.toLowerCase()));
 });
@@ -129,7 +129,8 @@ test("free tools: prop-firm rules (no ANANSI/token mention), SlopScore daily quo
   // via HTTP REST, MCP and A2A
   const handler = createHandler(h, { trustProxy: true });
   const rest = await call(handler, "GET", "/v1/free/prop_firm_rules?action=list_firms"); assert.equal(rest.status, 200); assert.equal(rest.json.data.firms[0].id, "ftmo");
-  assert.equal((await call(handler, "GET", "/v1/free")).json.tools.length, 3);
+  const freeList = (await call(handler, "GET", "/v1/free")).json.tools.map((t) => t.name);
+  for (const n of ["prop_firm_rules", "slopscore_check", "anansi_free_data", "time_tools", "market_hours", "unit_convert", "calculate", "text_tools", "json_validate", "uuid_hash", "url_metadata"]) assert.ok(freeList.includes(n), n);
   const mcp = await call(handler, "POST", "/mcp", { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "anansi_free_data", arguments: { action: "price_current", model_id: "gpt-5" } } });
   assert.equal(mcp.json.result.structuredContent.data.results[0].model_id, "openai/gpt-5");
   const a2a = await call(handler, "POST", "/a2a", { jsonrpc: "2.0", id: 1, method: "SendMessage", params: { message: { messageId: "m", role: "ROLE_USER", parts: [{ text: "prop firm rules ftmo_2step" }] } } }, { "a2a-version": "1.0" });

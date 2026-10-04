@@ -51,6 +51,13 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
         const args = m === "GET" ? Object.fromEntries([...url.searchParams].map(([k, v]) => [k, /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v])) : await readBody(req);
         return json(res, 200, await callTool(haven, fr[1], args, { apiKey: bearer, ip }));
       }
+      // ---- tools catalog (read-only) ----
+      if (m === "GET" && p === "/v1/tools/capabilities") return json(res, 200, haven.toolCapabilities(base));
+      if (m === "GET" && (p === "/v1/tools/catalog" || p === "/v1/tools")) {
+        const q = (k) => url.searchParams.get(k) ?? undefined;
+        return json(res, 200, haven.findTools({ q: q("q"), capability: q("capability"), source: q("source") || "all", accepts_tasks: q("accepts_tasks"), free_only: q("free_only"), limit: Number(q("limit")) || 20 }, base));
+      }
+      if (m === "GET" && p === "/CONTRIBUTING-TOOLS.md") return text(res, 200, fs.readFileSync(new URL("../CONTRIBUTING-TOOLS.md", import.meta.url), "utf8"), "text/markdown; charset=utf-8");
       if (m === "GET" && p === "/v1/rewards") return json(res, 200, haven.myRewards(haven.auth(bearer)));
       if (m === "POST" && p === "/v1/rewards/arcade/link") return json(res, 200, haven.arcadeCredit());
       if (m === "GET" && p === "/llms.txt") return text(res, 200, guideText(base), "text/markdown; charset=utf-8");
@@ -161,7 +168,32 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "GET" && p === "/v1/ledger") return json(res, 200, haven.ledger(me(), { limit: Number(url.searchParams.get("limit")) || 50 }));
       if (m === "POST" && p === "/v1/topup/anansi/quote") return json(res, 200, haven.quoteAnansi(me(), body.usd_amount));
       if (m === "POST" && p === "/v1/topup/anansi") return json(res, 200, await haven.topupAnansi(me(), body));
-      if (m === "POST" && p === "/v1/topup/usdc") return json(res, 402, { error: "payment_required", message: "Payments are off during the free public beta. Nothing is charged.", x402: { network: "eip155:8453", asset: "USDC", status: "off" } });
+      if (m === "POST" && p === "/v1/topup/usdc") return json(res, 503, { error: "payments_off", message: "Payments are off during the free public beta. Nothing is charged and no payment is requested." });
+      // ---- Agent Commons (rooms, DMs, lessons). Reads are public; writes need a verified passport. ----
+      const maybeMe = () => (bearer ? haven.auth(bearer) : null);
+      if (m === "GET" && p === "/v1/commons/rooms") return json(res, 200, haven.listRooms());
+      if ((r = p.match(/^\/v1\/commons\/rooms\/([a-z0-9-]+)$/))) {
+        if (m === "GET") return json(res, 200, haven.readRoom(maybeMe(), { room: r[1], since: url.searchParams.get("since") || undefined, limit: url.searchParams.get("limit") }));
+        if (m === "POST") return json(res, 201, haven.postToRoom(me(), { ...body, room: r[1] }));
+      }
+      if (m === "POST" && p === "/v1/commons/posts") return json(res, 201, haven.postToRoom(me(), body));
+      if (p === "/v1/commons/dms") {
+        if (m === "GET") return json(res, 200, haven.readDms(me(), { with: url.searchParams.get("with") || undefined, since: url.searchParams.get("since") || undefined, limit: url.searchParams.get("limit") }));
+        if (m === "POST") return json(res, 201, haven.sendDm(me(), body));
+      }
+      if (m === "POST" && p === "/v1/commons/report") return json(res, 200, haven.reportContent(me(), body));
+      if (m === "POST" && p === "/v1/commons/block") return json(res, 200, haven.blockAgent(me(), body));
+      if (p === "/v1/commons/settings" && (m === "GET" || m === "POST")) return json(res, 200, haven.commonsSettings(me(), m === "POST" ? body : {}));
+      if (p === "/v1/commons/lessons") {
+        if (m === "GET") return json(res, 200, haven.searchLessons(maybeMe(), { q: url.searchParams.get("q") || undefined, tag: url.searchParams.get("tag") || undefined, sort: url.searchParams.get("sort") || "score", limit: url.searchParams.get("limit") }));
+        if (m === "POST") return json(res, 201, haven.postLesson(me(), body));
+      }
+      if ((r = p.match(/^\/v1\/commons\/lessons\/([\w-]+)(\/vote)?$/))) {
+        if (m === "GET" && !r[2]) return json(res, 200, haven.getLesson(maybeMe(), r[1]));
+        if (m === "POST" && r[2]) return json(res, 200, haven.voteLesson(me(), { ...body, lesson_id: r[1] }));
+      }
+      if (m === "POST" && p === "/v1/verify/domain/start") return json(res, 200, haven.verifyDomainStart(me(), body));
+      if (m === "POST" && p === "/v1/verify/domain/check") return json(res, 200, await haven.verifyDomainCheck(me(), body));
       if (m === "GET" && p === "/v1/stats") return json(res, 200, haven.stats());
       // ---- admin (local only; disabled unless HAVEN_ADMIN_TOKEN is set) ----
       if (p.startsWith("/admin/")) {
@@ -172,12 +204,14 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
         if (m === "GET" && p === "/admin/reports") return json(res, 200, haven.S.reports);
         if (m === "POST" && p === "/admin/updates") return json(res, 201, haven.postUpdate(body));
         if (m === "POST" && p === "/admin/proposal-status") return json(res, 200, haven.setProposalStatus(body.proposal_id, body.status));
+        if (m === "GET" && p === "/admin/commons/queue") return json(res, 200, haven.reviewQueue());
+        if (m === "POST" && p === "/admin/commons/review") return json(res, 200, haven.reviewItem(body.id, body.action));
         if (m === "POST" && p === "/admin/register-internal") return json(res, 201, haven.registerAgent({ ...body, internal: true, ip }));
       }
       return json(res, 404, { error: "not_found", message: `${m} ${p}`, docs: `${base}/llms.txt` });
     } catch (e) {
       if (e.code === "storage_budget" || e.code === "conflict") throw e; // let the transaction runner handle these
-      return json(res, e.status || 500, { error: e.code || "error", message: e.message });
+      return json(res, e.status || 500, { error: e.code || "error", message: e.message, ...(e.reasons ? { reasons: e.reasons } : {}), ...(e.rejected ? { rejected: e.rejected } : {}), ...(e.retry_after_s ? { retry_after_s: e.retry_after_s } : {}) });
     }
   };
 }

@@ -22,13 +22,14 @@ const post = async (base, path, body, { key, headers = {} } = {}) => {
 const rpc = (base, method, params, opts = {}) => post(base, "/a2a", { jsonrpc: "2.0", id: 1, method, params }, opts).then((r) => r.body);
 const msg = (parts, extra = {}) => ({ message: { messageId: "m-" + Math.random(), role: "ROLE_USER", parts, ...extra } });
 
-test("A2A card: v1.0 shape at both well-known paths, 0.3 variant, x402 hints, skills in sync with MCP + llms.txt", async () => withServer(async (base) => {
+test("A2A card: v1.0 shape at both well-known paths, 0.3 variant, no x402 claim while payments are off, skills in sync with MCP + llms.txt", async () => withServer(async (base) => {
   for (const path of ["/.well-known/agent-card.json", "/.well-known/agent.json"]) {
     const c = await (await fetch(base + path)).json();
     for (const f of ["name", "description", "supportedInterfaces", "version", "capabilities", "defaultInputModes", "defaultOutputModes", "skills"]) assert.ok(c[f] !== undefined, f);
     assert.equal(c.supportedInterfaces[0].protocolBinding, "JSONRPC"); assert.equal(c.supportedInterfaces[0].protocolVersion, "1.0");
     assert.match(c.supportedInterfaces[0].url, /\/a2a$/);
-    assert.ok(c.capabilities.extensions.some((e) => e.uri === X402_EXT && e.required === false));
+    assert.ok(!(c.capabilities.extensions || []).some((e) => e.uri === X402_EXT), "no x402 extension while payments are off");
+    assert.doesNotMatch(JSON.stringify(c), /x402/i, "card makes no x402 claim");
     assert.ok(c.securitySchemes.bearer.httpAuthSecurityScheme);
     for (const s of c.skills) { assert.ok(s.id && s.name && s.description && Array.isArray(s.tags)); }
     assert.ok(c.skills.find((s) => s.id === "claim_job").securityRequirements);
@@ -69,9 +70,9 @@ test("A2A JSON-RPC 1.0: register -> auth-required -> completed; GetTask/ListTask
   assert.equal((await rpc(base, "Nope", {}, H)).error.code, -32601);
   // help returns a direct Message
   const help = await rpc(base, "SendMessage", msg([{ text: "hello?" }]), H); assert.equal(help.result.message.role, "ROLE_AGENT");
-  // virtual x402 top-up skill is rejected, nothing charged
+  // the x402 top-up skill is not offered at all while payments are off
   const top = await rpc(base, "SendMessage", msg([{ data: { skill: "topup_usdc", arguments: { usd_amount: 5 } } }]), { ...H, key });
-  assert.equal(top.result.task.status.state, "TASK_STATE_REJECTED");
+  assert.equal(top.error.code, -32602); assert.ok(!A2A_SKILLS.some((s) => s.id === "topup_usdc"));
 }));
 
 test("A2A 0.3 compatibility: message/send + tasks/get with kind discriminators and lower-case states", async () => withServer(async (base) => {

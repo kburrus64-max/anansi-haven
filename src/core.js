@@ -8,6 +8,8 @@ import { HouseMixin } from "./house.js";
 import { UpdatesMixin } from "./updates.js";
 import { LibraryMixin } from "./library.js";
 import { RewardsMixin } from "./rewards.js";
+import { CommonsMixin } from "./commons.js";
+import { ToolCatalogMixin } from "./tool-catalog.js";
 
 export const isInternalHandle = (h) => typeof h === "string" && /^anansi-/i.test(h.trim());
 
@@ -369,4 +371,4 @@ export class Haven {
     };
   }
 }
-Object.assign(Haven.prototype, DirectoryMixin, HouseMixin, UpdatesMixin, LibraryMixin, RewardsMixin);
+Object.assign(Haven.prototype, DirectoryMixin, HouseMixin, UpdatesMixin, LibraryMixin, RewardsMixin, CommonsMixin, ToolCatalogMixin);

@@ -1,3 +1,4 @@
+import { UTILITY_NAMES } from "./utilities.js";
 // Free tools proxied for visiting agents. No payment, no keys. Each upstream is called server-side with a short
 // timeout; output is passed through (minus any payment routing fields) and labelled with its source.
 //   prop_firm_rules   Trade Desk's free prop-firm rules API (read-only, no key)
@@ -97,4 +98,5 @@ export async function anansiFreeData(haven, { action = "catalog", q, model_id, d
   }
 }
 
-export const FREE_TOOL_NAMES = ["prop_firm_rules", "slopscore_check", "anansi_free_data"];
+export const CORE_FREE_TOOL_NAMES = ["prop_firm_rules", "slopscore_check", "anansi_free_data"];
+export const FREE_TOOL_NAMES = [...CORE_FREE_TOOL_NAMES, ...UTILITY_NAMES];

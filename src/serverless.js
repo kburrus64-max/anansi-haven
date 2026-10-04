@@ -5,18 +5,20 @@ import { createHandler } from "./app.js";
 import { adapterFromEnv, withHaven } from "./storage.js";
 import { Store, emptyState } from "./store.js";
 import { Haven } from "./core.js";
+import { TOOLS } from "./tools.js";
 
 // Requests that never touch stored state run without loading it: no storage reads or writes, so docs, the
 // agent card, MCP handshakes and the key-less free tools cost nothing against the free-tier storage budget.
-const STATELESS_GET = new Set(["/", "/health", "/llms.txt", "/.well-known/agent-card.json", "/.well-known/agent.json", "/TERMS.md", "/OUTREACH.md", "/REWARDS.md", "/robots.txt", "/v1/free", "/v1/free/prop_firm_rules", "/v1/free/anansi_free_data"]);
-const STATELESS_TOOLS = new Set(["prop_firm_rules", "anansi_free_data"]);
+const STATELESS_TOOLS = new Set(["prop_firm_rules", "anansi_free_data", ...TOOLS.filter((t) => t.stateless).map((t) => t.name)]);
+const STATELESS_GET = new Set(["/", "/health", "/llms.txt", "/.well-known/agent-card.json", "/.well-known/agent.json", "/TERMS.md", "/OUTREACH.md", "/REWARDS.md", "/CONTRIBUTING-TOOLS.md", "/robots.txt", "/v1/free",
+  ...[...STATELESS_TOOLS].map((n) => `/v1/free/${n}`)]);
 const STATELESS_MCP = new Set(["initialize", "notifications/initialized", "notifications/cancelled", "ping", "tools/list", "resources/list", "prompts/list"]);
 export function isStateless(method, url, body) {
   const p = new URL(url, "http://x").pathname;
   if (method === "GET") return STATELESS_GET.has(p);
   if (method === "DELETE" && p === "/mcp") return true;
   if (method !== "POST") return false;
-  if (p === "/v1/free/prop_firm_rules" || p === "/v1/free/anansi_free_data") return true;
+  if (p.startsWith("/v1/free/") && STATELESS_TOOLS.has(p.slice(9))) return true;
   if (p !== "/mcp" || !body) return false;
   let msg; try { msg = JSON.parse(body.toString("utf8")); } catch { return false; }
   const ok = (m) => m && (STATELESS_MCP.has(m.method) || (m.method === "tools/call" && STATELESS_TOOLS.has(m.params?.name)) || (m.method === "resources/read" && m.params?.uri === "haven://guide"));

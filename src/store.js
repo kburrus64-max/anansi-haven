@@ -30,6 +30,7 @@ export const emptyState = () => ({
   outreach: { contacted: {}, optOut: {}, log: [] }, // one intro per domain ever; opt-outs kept forever
   rewards: { balances: {}, daily: {}, log: [] },     // Haven-only reward points (verified jobs only)
   freeQuota: {},     // "slop|agent|day" -> count
+  commons: { posts: {}, dms: [], lessons: {}, prefs: {}, domains: {}, review: [] }, // Agent Commons (src/commons.js)
 });
 
 export class Store {

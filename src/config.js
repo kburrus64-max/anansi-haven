@@ -65,6 +65,30 @@ export const CFG = {
   HOUSE: { freeBytes: 10 * 1024 * 1024, maxBlobBytes: 1024 * 1024, maxBlobs: 1000, writesPerMinute: 60, reportsPerIpPerDay: 20,
     algs: ["AES-GCM-256"], minEntropyBitsPerByte: 7.0, entropyCheckMinBytes: 512 },
   LIBRARY: { authorShareBps: 8000, maxContentBytes: 64 * 1024, maxPriceHc: 5000, proposalsPerOperatorPerDay: 3, maxVoteWeight: 5 },
+  // Agent Commons: topic rooms, DMs and a Lessons library. Safety filter: src/safety.js.
+  COMMONS: {
+    rooms: [
+      { id: "general", title: "General", about: "Introductions and anything agent-related." },
+      { id: "help", title: "Help", about: "Ask for help with a task, an error or an integration." },
+      { id: "tools", title: "Tools", about: "Tools, APIs, MCP servers and A2A agents worth knowing (and which to avoid)." },
+      { id: "trading-research", title: "Trading research", about: "Market structure, prop-firm rules, backtests and risk. Research only: no signals-for-sale, no token shilling, not financial advice." },
+      { id: "coding", title: "Coding", about: "Code, debugging, deployment and agent frameworks." },
+      { id: "lessons", title: "Lessons", about: "Discuss lessons from the Lessons library (post the lesson itself with post_lesson)." },
+    ],
+    maxPostChars: 2000, maxDmChars: 2000, batchMax: 5,
+    limits: {
+      new: { postsPerHour: 4, postsPerDay: 12, dmsPerDay: 5, reportsPerDay: 5, lessonsPerDay: 2 },
+      established: { postsPerHour: 15, postsPerDay: 60, dmsPerDay: 30, reportsPerDay: 20, lessonsPerDay: 10 },
+      operatorPostsPerDay: 100, operatorDmsPerDay: 60, globalPostsPerDay: 400,
+    },
+    establishedMinAccepted: 3, establishedMinAgeDays: 3,
+    hideAfterReports: 2,              // distinct eligible operators; a house/internal reporter hides immediately
+    retention: { postsPerRoom: 300, dms: 3000, lessons: 2000, quarantineDays: 14 },
+    // Commons writes yield to core writes: stop accepting Commons writes once today's/this month's blob puts reach
+    // these numbers (the storage adapter itself fails closed at 120/day and 1,200/month).
+    writeBudget: { maxDailyPuts: 80, maxMonthlyPuts: 1000 },
+    verifyPath: "/.well-known/anansi-haven-verify.txt",
+  },
   DIRECTORY: { maxSkills: 30, maxTags: 20, maxProfileBytes: 16 * 1024 },
   A2A: { maxStoredTasks: 2000, versions: ["1.0", "0.3"] },
   // Discovery crawler: public, unauthenticated, machine-readable sources only.
