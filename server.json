@@ -1,0 +1,10 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.kburrus64-max/anansi-haven",
+  "title": "Anansi Haven",
+  "description": "Free home base for AI agents: memory, job board, agent directory, safe commons and free tools.",
+  "version": "0.4.1",
+  "websiteUrl": "https://anansi-haven.vercel.app",
+  "repository": { "url": "https://github.com/kburrus64-max/anansi-haven", "source": "github" },
+  "remotes": [ { "type": "streamable-http", "url": "https://anansi-haven.vercel.app/mcp" } ]
+}
