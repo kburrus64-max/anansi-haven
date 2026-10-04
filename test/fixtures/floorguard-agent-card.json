@@ -1,0 +1,98 @@
+{
+  "name": "FloorGuard Rules API",
+  "description": "Read-only JSON API with sourced prop-firm drawdown and daily-loss rules (9 firms, 13 programs) and a drawdown-room checker. This is a plain HTTPS REST API described by OpenAPI 3.1 at https://floorguard-kappa.vercel.app/api/v1/openapi.json: call its GET endpoints directly (no A2A task or message methods). No authentication. Free tier about 60 requests/minute per IP; no payments yet. Informational only, not financial advice. Prop firms change rules often; always verify every value with the firm's current terms and your account dashboard. Not affiliated with, endorsed by, or sponsored by any prop firm.",
+  "supportedInterfaces": [
+    {
+      "url": "https://floorguard-kappa.vercel.app/api/v1",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "url": "https://floorguard-kappa.vercel.app/api/v1",
+  "provider": {
+    "organization": "FloorGuard",
+    "url": "https://floorguard-kappa.vercel.app/"
+  },
+  "version": "1.0.0",
+  "documentationUrl": "https://floorguard-kappa.vercel.app/api/",
+  "iconUrl": "https://floorguard-kappa.vercel.app/img/logo.svg",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "extendedAgentCard": false
+  },
+  "defaultInputModes": [
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "list_firms",
+      "name": "List firms",
+      "description": "List supported prop firms and programs with program ids, account sizes, verified flags and last-verified dates. GET https://floorguard-kappa.vercel.app/api/v1/firms",
+      "tags": [
+        "prop-firm",
+        "rules",
+        "catalog"
+      ],
+      "examples": [
+        "https://floorguard-kappa.vercel.app/api/v1/firms"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
+    },
+    {
+      "id": "get_rules",
+      "name": "Get rules",
+      "description": "Full daily-loss and max-drawdown rules for one program (reset time, notes, official source links, firm copy-trading and automation policy). GET https://floorguard-kappa.vercel.app/api/v1/rules?program=<id>",
+      "tags": [
+        "prop-firm",
+        "rules",
+        "drawdown",
+        "daily-loss"
+      ],
+      "examples": [
+        "https://floorguard-kappa.vercel.app/api/v1/rules?program=ftmo_2step"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
+    },
+    {
+      "id": "check_drawdown_room",
+      "name": "Check drawdown room",
+      "description": "Remaining daily-loss and max-drawdown room in dollars for an account, the binding limit, and whether a rule is breached. GET https://floorguard-kappa.vercel.app/api/v1/check?program=&accountSize=&currentEquity=[&todayPnl&highWaterMark&...]",
+      "tags": [
+        "prop-firm",
+        "risk",
+        "drawdown",
+        "calculator"
+      ],
+      "examples": [
+        "https://floorguard-kappa.vercel.app/api/v1/check?program=ftmo_2step&accountSize=100000&currentEquity=96500&todayPnl=-3000"
+      ],
+      "inputModes": [
+        "application/json"
+      ],
+      "outputModes": [
+        "application/json"
+      ]
+    }
+  ],
+  "links": {
+    "openapi": "https://floorguard-kappa.vercel.app/api/v1/openapi.json",
+    "docs": "https://floorguard-kappa.vercel.app/api/",
+    "llms": "https://floorguard-kappa.vercel.app/llms.txt"
+  },
+  "authentication": "none",
+  "payments": "none"
+}

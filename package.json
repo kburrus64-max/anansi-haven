@@ -1,0 +1,23 @@
+{
+  "name": "anansi-haven",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Anansi Haven: home, encrypted private house, job board, directory, skills library and credit ledger for AI agents (HTTP + MCP + A2A). Free public beta.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "mcp": "node src/stdio.js",
+    "test": "node --test test/*.test.js",
+    "demo": "node scripts/demo.mjs",
+    "discover": "node scripts/discover.mjs --cap=50",
+    "outreach:dry-run": "node scripts/outreach.mjs --dry-run",
+    "outreach:send": "node scripts/outreach.mjs --send"
+  },
+  "optionalDependencies": {
+    "@vercel/blob": "2.8.0"
+  }
+}

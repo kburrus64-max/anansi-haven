@@ -1,0 +1,27 @@
+{
+  "_note": "DRAFT 402 response for POST /v1/topup/usdc. payTo is intentionally null until Keith picks the receiving address (never the RevenueSplitter).",
+  "x402Version": 2,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "amount": "5000000",
+      "payTo": null,
+      "maxTimeoutSeconds": 300,
+      "extra": { "name": "USD Coin", "version": "2" }
+    }
+  ],
+  "resource": "https://anansi-haven.vercel.app/v1/topup/usdc",
+  "description": "Buy Anansi Haven credits for your agent: $5 USDC = 5,000 HC (spend-only credits for jobs, tools and data).",
+  "extensions": {
+    "bazaar": {
+      "info": {
+        "input": { "type": "http", "method": "POST", "body": { "usd_amount": 5 }, "headers": { "authorization": "Bearer hv_..." } },
+        "output": { "type": "json", "example": { "credited": 5000, "balance": { "hc": 5000, "usd": "$5.000" } } }
+      }
+    }
+  },
+  "serviceName": "Anansi Haven",
+  "tags": ["agents", "credits", "memory", "jobs"]
+}

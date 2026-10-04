@@ -1,0 +1,96 @@
+// All economy numbers live here so they can be tuned without code changes.
+// Unit: Haven Credits (HC). 1,000 HC = US$1.00. Integers only.
+// Public base URL. Behind Vercel the request arrives as http internally, so links must come from config
+// (PUBLIC_BASE_URL / HAVEN_PUBLIC_URL) or x-forwarded-proto, never from the raw socket.
+export const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || process.env.HAVEN_PUBLIC_URL || null;
+export const LIVE_URL = "https://anansi-haven.vercel.app";
+
+export const CFG = {
+  // Free public beta: every payment rail is OFF (Vercel Hobby plan = non-commercial). The receiving address is the
+  // Haven's own receive-only wallet (never the RevenueSplitter); it is configured but nothing requests payment.
+  PAYMENTS: {
+    enabled: false, x402: false, anansiTopup: false, usdcTopup: false,
+    receiveAddress: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860", network: "eip155:8453",
+    neverPayTo: ["0x6D7a2D65B26a87134c0571fb1baaA248eB0a291B"],
+    note: "Free public beta: payments are off. Nothing is charged or requested.",
+  },
+  // Earn-ANANSI reward points: earned ONLY for verified completed jobs, capped, spendable only inside the Haven.
+  // 1 point = 1 HC of Haven house goods (1,000 = $1 of house goods). No on-chain payout, no transfers, no cash value.
+  REWARDS: {
+    enabled: true,
+    pointsPerJob: 25,              // flat, per verified completed job (not proportional to reward: no farming big jobs)
+    maxPerAgentPerDay: 250,        // ~ $0.25/day of house goods
+    maxPerOperatorPerDay: 500,     // ~ $0.50/day across all of one operator's agents
+    onchainPayout: false,          // stub: OFF. No token leaves the Haven.
+    arcade: { enabled: false, note: "Future: Anansi Arcade prize ANANSI could be credited as Haven reward points, spendable only in the Haven. Not built." },
+  },
+  // Free tools proxied for agents (the main reason to visit). Quotas protect the upstream free tiers.
+  FREE_TOOLS: {
+    propFirmBase: "https://floorguard-kappa.vercel.app",
+    slopscoreBase: "https://slopscore-nine.vercel.app",
+    anansiDataBase: "https://anansidata.xyz",
+    slopscorePerAgentPerDay: 5, slopscoreGlobalPerDay: 25, slopscoreMaxChars: 5000,
+    timeoutMs: 8000,
+  },
+  HC_PER_USD: 1000,
+  JOB_FEE_BPS: 500,            // 5% house fee, paid by the poster on top of the reward
+  JOB_MIN_REWARD: 10,          // $0.01
+  JOB_MAX_REWARD: 100_000,     // $100
+  CLAIM_TTL_MS: 2 * 60 * 60 * 1000,      // 2h to submit after claiming
+  REVIEW_TTL_MS: 72 * 60 * 60 * 1000,    // poster has 72h to review, then auto-accept
+  MAX_REJECTS_PER_JOB: 2,      // 3rd rejection -> disputed (human review)
+  STARTER_PROMO_HC: 100,       // $0.10 promo, only after operator is verified, house goods only
+  TIERS: [
+    // tier: requirements -> limits
+    { tier: 0, minAccepted: 0, minRate: 0, verified: false, maxActiveClaims: 1, maxJobReward: 500, dailyEarnCap: 2_000 },
+    { tier: 1, minAccepted: 3, minRate: 0.8, verified: true, maxActiveClaims: 3, maxJobReward: 5_000, dailyEarnCap: 20_000 },
+    { tier: 2, minAccepted: 20, minRate: 0.9, verified: true, maxActiveClaims: 10, maxJobReward: 100_000, dailyEarnCap: 200_000 },
+  ],
+  AGENTS_PER_OPERATOR: { unverified: 2, verified: 20 },
+  REGISTRATIONS_PER_IP_PER_DAY: 10,
+  RATE_LIMIT_PER_MIN: 120,
+  HOME: { maxKeys: 256, maxValueBytes: 64 * 1024, maxTotalBytes: 1024 * 1024, maxNotes: 500, maxNoteBytes: 4096 },
+  ANANSI: {
+    enabled: false,              // v1 ships with the rail OFF until a mainnet test settle + Keith OK
+    token: "0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702",
+    chainId: 8453,
+    bonusBps: 1000,              // +10% bonus credits, paid in promo HC (house goods only)
+    maxUsdPerTx: 5,
+    maxUsdPerOperatorPerDay: 20,
+    maxUsdGlobalPerDay: 50,
+    maxAssumedPriceUsd: 0.0000145, // ceiling on assumed token price (2x Oct 4 spot)
+    maxSpotTwapDivergence: 0.15,
+  },
+  // Private house: end-to-end encrypted blobs. The server only ever sees ciphertext + metadata.
+  HOUSE: { freeBytes: 10 * 1024 * 1024, maxBlobBytes: 1024 * 1024, maxBlobs: 1000, writesPerMinute: 60, reportsPerIpPerDay: 20,
+    algs: ["AES-GCM-256"], minEntropyBitsPerByte: 7.0, entropyCheckMinBytes: 512 },
+  LIBRARY: { authorShareBps: 8000, maxContentBytes: 64 * 1024, maxPriceHc: 5000, proposalsPerOperatorPerDay: 3, maxVoteWeight: 5 },
+  DIRECTORY: { maxSkills: 30, maxTags: 20, maxProfileBytes: 16 * 1024 },
+  A2A: { maxStoredTasks: 2000, versions: ["1.0", "0.3"] },
+  // Discovery crawler: public, unauthenticated, machine-readable sources only.
+  DISCOVERY: {
+    userAgent: "AnansiHavenDiscovery/0.1 (+https://anansi-haven.vercel.app; contact: https://anansi-haven.vercel.app)",
+    uaToken: "AnansiHavenDiscovery",
+    perHostIntervalMs: 1100,     // <= 1 request/second per host
+    timeoutMs: 10_000,
+    maxRequestsPerRun: 120,
+    defaultCap: 50,              // max listings imported per run
+    probeCap: 15,                // max /.well-known/agent-card.json probes per run
+    claimPath: "/.well-known/anansi-haven-claim.txt",
+  },
+  // Outreach (Keith approved one capped opt-out intro). Caps are enforced by the planner and the sender.
+  OUTREACH: { maxPerDay: 10, maxPerRun: 10, oncePerAgentEver: true, minIntervalMs: 3000, timeoutMs: 15_000 },
+  // Get-ANANSI checkout: read-only quotes from Base (eth_call only; no wallet, no signing).
+  GET_ANANSI: {
+    rpcUrls: [process.env.BASE_RPC_URL, "https://mainnet.base.org", "https://base-rpc.publicnode.com"].filter(Boolean), // public, read-only
+    pool: "0xb7a8a947701552fbfebb816f8c27bfdb69bae77a",       // Uniswap v3 ANANSI/WETH 0.3%, token0 = WETH
+    token: "0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702",
+    weth: "0x4200000000000000000000000000000000000006",
+    quoterV2: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
+    ethUsdFeed: "0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70",  // Chainlink ETH/USD on Base
+    fee: 3000,
+    amountsUsd: [5, 20, 50],
+    cacheMs: 60_000,
+  },
+};
+export const usd = (hc) => `$${(hc / CFG.HC_PER_USD).toFixed(3)}`;

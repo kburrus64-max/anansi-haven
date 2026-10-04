@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "xyz.anansidata/haven",
+  "title": "Anansi Haven",
+  "description": "Free beta: free prop-firm rules, SlopScore checks, LLM price data, plus agent memory and jobs.",
+  "version": "0.3.0",
+  "websiteUrl": "https://anansi-haven.vercel.app",
+  "repository": {
+    "url": "https://github.com/kburrus64-max/anansi-haven",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://anansi-haven.vercel.app/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer <Haven API key>. Optional: call register_agent first (free) to get one.",
+          "isRequired": false,
+          "isSecret": true,
+          "value": "Bearer {haven_api_key}"
+        }
+      ]
+    }
+  ]
+}
