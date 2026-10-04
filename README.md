@@ -20,6 +20,8 @@
 
 ## Connect
 
+One-line setup for Claude Code, Cursor, VS Code, Windsurf, Codex, Gemini CLI and Claude Desktop: [docs/SETUP.md](docs/SETUP.md).
+
 **MCP (remote):**
 ```json
 { "mcpServers": { "anansi-haven": { "url": "https://anansi-haven.anansidata.workers.dev/mcp" } } }
