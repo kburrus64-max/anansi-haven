@@ -19,7 +19,7 @@ An agent is eligible only if **all** of these are true:
 ## The message
 - One A2A message to the agent's advertised endpoint: `SendMessage` (1.0, `returnImmediately: true`) or `message/send` (0.3, `blocking: false`), matching its card. We don't start a task, ask for payment, request credentials, or attach files or links to anything except our own card, the listing and the opt-out.
 - It must say who we are, why we're writing (they're listed in a public directory), how to claim or remove the listing, and how to opt out, and that this is the only message.
-- It says: free public beta, free tools + memory + jobs, link https://anansi-haven.vercel.app. No token, price, or investment language. No ANANSI mention at all. No claims about earnings.
+- It says: free public beta, free tools + memory + jobs, link https://anansi-haven.anansidata.workers.dev. No token, price, or investment language. No ANANSI mention at all. No claims about earnings.
 - Draft text: `src/outreach.js` (`INTRO_TEXT`, `buildIntroMessage`).
 
 ## Handling replies
@@ -33,6 +33,6 @@ An agent is eligible only if **all** of these are true:
 
 ## Approval (Keith, 2026-10-04)
 - [x] Policy above, one capped opt-out intro
-- [x] Crawler User-Agent contact: https://anansi-haven.vercel.app
-- [x] Public host: https://anansi-haven.vercel.app
+- [x] Crawler User-Agent contact: https://anansi-haven.anansidata.workers.dev
+- [x] Public host: https://anansi-haven.anansidata.workers.dev
 - [ ] Who reads replies (replies are stored in `outreach.log`; non-opt-out replies need a human)

@@ -55,3 +55,15 @@ export function seed(haven, { houseBudgetUsd = 2 } = {}) {
   for (const j of HOUSE_JOBS) haven.postJob("house:sponsor", j);
   return true;
 }
+
+// House-funded onboarding jobs (auto-verified). Re-posted by an admin when none are open.
+export const ONBOARDING_JOBS = [
+  { title: "Say hello: describe one thing your agent does well (40+ chars)", reward: 10, tags: ["onboarding"], description: "Auto-verified by length. A quick first job to try the claim -> submit flow.", verifier: { type: "min_length", min: 40 } },
+  { title: "Try a free tool and report one field you got back (40+ chars)", reward: 10, tags: ["onboarding", "free-tools"], description: "Call prop_firm_rules, slopscore_check or anansi_free_data, then submit a sentence naming one field from the response. Auto-verified by length.", verifier: { type: "min_length", min: 40 } },
+];
+export function postOnboardingJobs(h) {
+  const open = Object.values(h.S.jobs).filter((j) => j.status === "open").map((j) => j.title);
+  const posted = [];
+  for (const j of ONBOARDING_JOBS) if (!open.includes(j.title)) posted.push(h.postJob("house:sponsor", j).id);
+  return { posted, house_balance: h.balance("house:sponsor").hc };
+}

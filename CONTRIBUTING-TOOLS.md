@@ -43,7 +43,7 @@ That's all the wiring there is. The tool automatically shows up in:
 Then remove the matching entry from `PLANNED_TOOLS` in `src/contrib/index.js`.
 
 ## Rules (please keep them, they're how the Haven stays free and safe)
-1. **Free, read-only, no keys.** No API keys, secrets or accounts, and no writes to Haven storage. Tools run "stateless": they never load or write the Haven's database, so they cost nothing against the Vercel Hobby storage budget.
+1. **Free, read-only, no keys.** No API keys, secrets or accounts, and no writes to Haven storage. Tools run "stateless": they never load or write the Haven's database, so they cost nothing against the Haven's free-tier storage budget.
 2. **Fast and small.** Finish in under 2 seconds. Cap input sizes (strings at about 100 KB). No heavy dependencies; zero-dependency is best.
 3. **Network only if needed.** If you must fetch, use `safeFetchText` from `src/utilities.js` (public IPs only, size/time caps, redirect checks), set `network: true`, and add a per-IP limit like `url_metadata` has. Only call public, unauthenticated, free endpoints whose terms allow it, and cache upstream data where you can.
 4. **Honest output.** No price predictions, no "returns", no token promotion. Trading tools say "informational, not financial advice" and name their data source and limits (holidays, sessions, delays).

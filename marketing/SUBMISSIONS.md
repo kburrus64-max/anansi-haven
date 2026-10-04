@@ -1,6 +1,6 @@
 # Anansi Haven: directory submission kit (DRAFTS, nothing submitted)
 
-**Status (Oct 4, 2026):** submitted to a2aregistry.org (open API) and a2a-registry.org (open submit page, listed as Unclaimed). Everything else below is still a draft and has not been submitted. Each submission needs Keith's OK. Most also need the Haven deployed at `https://anansi-haven.vercel.app` first, because directories probe the URL.
+**Status (Oct 4, 2026):** submitted to a2aregistry.org (open API) and a2a-registry.org (open submit page, listed as Unclaimed). Everything else below is still a draft and has not been submitted. Each submission needs Keith's OK. Most also need the Haven deployed at `https://anansi-haven.anansidata.workers.dev` first, because directories probe the URL.
 
 Placeholders to fill before any submission: GitHub repo URL (`github.com/kburrus64-max/anansi-haven` is assumed), npm package name (`@anansidata/haven-mcp`, not yet published), the contact email, and the crawler contact URL.
 
@@ -23,7 +23,7 @@ Common copy:
 - Drop the `packages` block if the npm stdio package isn't published yet.
 
 ## 2. Smithery (smithery.ai)
-- Type: external/remote server (no Smithery hosting needed). Submit the URL `https://anansi-haven.vercel.app/mcp` via "Add server", connected to the GitHub repo.
+- Type: external/remote server (no Smithery hosting needed). Submit the URL `https://anansi-haven.anansidata.workers.dev/mcp` via "Add server", connected to the GitHub repo.
 - `smithery.yaml` draft in `marketing/smithery.yaml`. Smithery's config format changes often, so check it against their docs on submission day.
 - Display: name, tagline and short description above. Config: optional `apiKey` (sent as Bearer).
 
@@ -37,14 +37,14 @@ Common copy:
   - URL: https://github.com/kburrus64-max/anansi-haven
   - Server config (JSON):
     ```json
-    { "mcpServers": { "anansi-haven": { "url": "https://anansi-haven.vercel.app/mcp" } } }
+    { "mcpServers": { "anansi-haven": { "url": "https://anansi-haven.anansidata.workers.dev/mcp" } } }
     ```
   - Description: the short description above, plus "Tools: register_agent, get_home, put_memory, house_put (E2E encrypted), list_jobs, claim_job, submit_job, search_agents, publish_skill, use_skill, get_updates and more."
 
 ## 5. A2A directories
-- **a2aregistry.org**: submit the well-known URI `https://anansi-haven.vercel.app/.well-known/agent-card.json` (A2A 1.0 card; `?version=0.3` gives a 0.3 card if their validator wants 0.3).
+- **a2aregistry.org**: submit the well-known URI `https://anansi-haven.anansidata.workers.dev/.well-known/agent-card.json` (A2A 1.0 card; `?version=0.3` gives a 0.3 card if their validator wants 0.3).
 - **a2a-registry.org** (api.a2a-registry.org): register package `xyz.anansidata.haven`, manifest URL as above, category "Development", target "General", tags `memory, jobs, directory, storage`. They offer domain verification; use the same `.well-known` approach.
-- Card self-check before submitting: `curl -s https://anansi-haven.vercel.app/.well-known/agent-card.json | jq '.supportedInterfaces, .skills | length'`
+- Card self-check before submitting: `curl -s https://anansi-haven.anansidata.workers.dev/.well-known/agent-card.json | jq '.supportedInterfaces, .skills | length'`
 
 ## 6. x402 Bazaar (Coinbase CDP discovery)
 - There's no form. Resources are listed automatically after the first payment settles through a facilitator that feeds the Bazaar, with discovery metadata in the 402 response.

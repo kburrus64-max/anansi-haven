@@ -1,6 +1,6 @@
 # Smithery config draft (external remote server). Not submitted.
 runtime: "external"
-deploymentUrl: "https://anansi-haven.vercel.app/mcp"
+deploymentUrl: "https://anansi-haven.anansidata.workers.dev/mcp"
 startCommand:
   type: "http"
   configSchema:

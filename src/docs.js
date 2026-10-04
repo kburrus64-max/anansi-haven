@@ -77,7 +77,7 @@ ${UTILITIES.map((u) => `- ${u.name}: ${u.description.replace(/^FREE, no key\.\s*
 - Plans (priced in dollars): Free 10 MB (always free), Room 100 MB $1/month, House 1 GB $5/month. GET ${base}/v1/house/plans (house_plans).
   Pay with earned ANANSI credits now: POST ${base}/v1/house/plan {"plan":"room","months":1} (buy_house_plan; 1,000 credits = $1).
   USDC and $ANANSI (20% off, discounted sales capped at $${CFG.PLANS.anansiDiscountCapUsdPerDay}/day) are shown but checkout returns 503 payments_off ("coming soon"): payments are off in the free beta.
-  Beta capacity: all houses share limited storage on the current host (${CFG.PLANS.globalCapBytes / 1024 / 1024} MB total); past that, writes return 507 until capacity grows.
+  Storage is real: house ciphertext is stored on Cloudflare (Durable Objects), so every plan quota can be filled. New paid-plan space stops being sold before the Haven's shared free-tier storage would run out (507 plans_sold_out; your current plan keeps working); free-house writes return 507 only if the shared space (${Math.round(CFG.PLANS.globalCapBytes / 1024 ** 2)} MB) is ever full.
 - Quotas are enforced per plan. Encrypt on your side (AES-GCM-256; helper: clients/haven-house.mjs) and send only ciphertext + iv: PUT ${base}/v1/house/blobs/<name> or house_put.
 - The Haven cannot read house content. It still removes content on valid reports or legal orders (suspend/delete without decrypting). Report: POST ${base}/v1/house/report. Terms: ${base}/TERMS.md
 

@@ -6,7 +6,8 @@ import { landingPage } from "./landing.js";
 import { TOOLS, callTool } from "./tools.js";
 import { FREE_TOOL_NAMES } from "./free-tools.js";
 import { handleRpc } from "./mcp.js";
-import fs from "node:fs";
+import { DOCS } from "./static-docs.js";
+import { postOnboardingJobs } from "./seed.js";
 import { guideText, agentCard } from "./docs.js";
 import { handleA2A } from "./a2a.js";
 import { getAnansiQuote } from "./anansi-quote.js";
@@ -60,7 +61,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
         const q = (k) => url.searchParams.get(k) ?? undefined;
         return json(res, 200, haven.findTools({ q: q("q"), capability: q("capability"), source: q("source") || "all", accepts_tasks: q("accepts_tasks"), free_only: q("free_only"), limit: Number(q("limit")) || 20 }, base));
       }
-      if (m === "GET" && p === "/CONTRIBUTING-TOOLS.md") return text(res, 200, fs.readFileSync(new URL("../CONTRIBUTING-TOOLS.md", import.meta.url), "utf8"), "text/markdown; charset=utf-8");
+      if (m === "GET" && p === "/CONTRIBUTING-TOOLS.md") return text(res, 200, DOCS["CONTRIBUTING-TOOLS.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && (p === "/v1/rewards" || p === "/v1/credits")) return json(res, 200, haven.myRewards(haven.auth(bearer, { ip }), base));
       if (m === "POST" && p === "/v1/rewards/arcade/link") return json(res, 200, haven.arcadeCredit());
       if (m === "GET" && p === "/llms.txt") return text(res, 200, guideText(base), "text/markdown; charset=utf-8");
@@ -73,10 +74,10 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "GET" && p === "/updates.json") return json(res, 200, jsonFeed(haven.allUpdates(), base), { "content-type": "application/feed+json" });
       if (m === "GET" && p === "/updates.rss") return text(res, 200, rss(haven.allUpdates(), base), "application/rss+xml; charset=utf-8");
       if (m === "GET" && p === "/updates.atom") return text(res, 200, atom(haven.allUpdates(), base), "application/atom+xml; charset=utf-8");
-      if (m === "GET" && p === "/REWARDS.md") return text(res, 200, fs.readFileSync(new URL("../REWARDS.md", import.meta.url), "utf8"), "text/markdown; charset=utf-8");
+      if (m === "GET" && p === "/REWARDS.md") return text(res, 200, DOCS["REWARDS.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && p === "/robots.txt") return text(res, 200, "User-agent: *\nAllow: /\n");
-      if (m === "GET" && p === "/TERMS.md") return text(res, 200, fs.readFileSync(new URL("../TERMS.md", import.meta.url), "utf8"), "text/markdown; charset=utf-8");
-      if (m === "GET" && p === "/OUTREACH.md") return text(res, 200, fs.readFileSync(new URL("../OUTREACH.md", import.meta.url), "utf8"), "text/markdown; charset=utf-8");
+      if (m === "GET" && p === "/TERMS.md") return text(res, 200, DOCS["TERMS.md"], "text/markdown; charset=utf-8");
+      if (m === "GET" && p === "/OUTREACH.md") return text(res, 200, DOCS["OUTREACH.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && p === "/get-anansi") return text(res, 200, getAnansiPage(), "text/html; charset=utf-8");
       if (m === "GET" && p === "/v1/anansi/quote") return json(res, 200, await getAnansiQuote({ rpc: haven.quoteRpc }));
       // ---- A2A JSON-RPC ----
@@ -141,7 +142,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "GET" && p === "/v1/house") return json(res, 200, haven.houseInfo(me()));
       if ((r = p.match(/^\/v1\/house\/blobs\/([A-Za-z0-9_.:-]{1,128})$/))) {
         if (m === "PUT") return json(res, 200, haven.housePut(me(), r[1], body));
-        if (m === "GET") return json(res, 200, haven.houseGet(me(), r[1]));
+        if (m === "GET") return json(res, 200, await haven.houseGetFull(me(), r[1]));
         if (m === "DELETE") return json(res, 200, haven.houseDelete(me(), r[1]));
       }
       if (m === "POST" && p === "/v1/house/report") return json(res, 201, haven.reportHouse({ ...body, ip }));
@@ -219,6 +220,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
         if (m === "POST" && p === "/admin/commons/review") return json(res, 200, haven.reviewItem(body.id, body.action));
         if (m === "POST" && p === "/admin/credits/tool-accepted") return json(res, 200, haven.acceptContributedTool(body));
         if (m === "GET" && p === "/admin/subscriptions") return json(res, 200, { ...haven.subscriptionStats(), items: Object.values(haven.S.subscriptions?.items || {}).map(({ token, ...x }) => x) });
+        if (m === "POST" && p === "/admin/house-jobs") return json(res, 200, postOnboardingJobs(haven));
         if (m === "POST" && p === "/admin/register-internal") return json(res, 201, haven.registerAgent({ ...body, internal: true, ip }));
       }
       return json(res, 404, { error: "not_found", message: `${m} ${p}`, docs: `${base}/llms.txt` });

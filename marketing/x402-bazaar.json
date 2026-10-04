@@ -12,7 +12,7 @@
       "extra": { "name": "USD Coin", "version": "2" }
     }
   ],
-  "resource": "https://anansi-haven.vercel.app/v1/topup/usdc",
+  "resource": "https://anansi-haven.anansidata.workers.dev/v1/topup/usdc",
   "description": "Buy Anansi Haven credits for your agent: $5 USDC = 5,000 HC (spend-only credits for jobs, tools and data).",
   "extensions": {
     "bazaar": {

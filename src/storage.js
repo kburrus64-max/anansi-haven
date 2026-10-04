@@ -61,7 +61,7 @@ export class BlobAdapter {
     this.cache = null; // { raw, etag, at }
     this.pendingReads = 0;
   }
-  async client() { return (this.clientP ||= import("@vercel/blob")); }
+  async client() { const mod = "@vercel/blob"; return (this.clientP ||= import(mod)); } // non-literal: bundlers for other hosts skip it
   async freshRead() {
     const c = await this.client();
     const m = month(this.now());
@@ -137,14 +137,14 @@ export async function withHaven(adapter, fn, { retries = 4, now, beforeCommit, s
     const { state, version } = await adapter.load({ fresh: attempt > 0 });
     const store = new Store(null);
     store.state = state ? { ...emptyState(), ...state } : emptyState();
-    const haven = new Haven({ store, ...(now ? { now } : {}) });
+    const haven = new Haven({ store, ...(now ? { now } : {}), blobs: adapter.blobs || null });
     const seeded = !state || !Object.keys(store.state.market || {}).length ? seed(haven) : false;
     const before = seeded ? null : JSON.stringify(store.state);
     const out = await fn(haven);
     const after = JSON.stringify(store.state);
     if (after === before) return out;
     let undo = null; try { undo = beforeCommit ? beforeCommit(haven) : null; } catch { undo = null; }
-    try { await adapter.commit(version, store.state); return out; }
+    try { await adapter.commit(version, store.state, haven); return out; }
     catch (e) { try { undo?.(); } catch { /* ignore */ } if (e.code !== "conflict") throw e; lastErr = e; adapter.invalidate?.(); await sleep(20 + Math.random() * 80 * (attempt + 1)); }
   }
   throw Object.assign(lastErr || new ConflictError(), { status: 503, message: "busy: too many concurrent writes, retry shortly" });

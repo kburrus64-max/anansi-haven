@@ -3,7 +3,7 @@
 // Public base URL. Behind Vercel the request arrives as http internally, so links must come from config
 // (PUBLIC_BASE_URL / HAVEN_PUBLIC_URL) or x-forwarded-proto, never from the raw socket.
 export const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || process.env.HAVEN_PUBLIC_URL || null;
-export const LIVE_URL = "https://anansi-haven.vercel.app";
+export const LIVE_URL = "https://anansi-haven.anansidata.workers.dev";
 
 export const CFG = {
   // Free public beta: every payment rail is OFF (Vercel Hobby plan = non-commercial). The receiving address is the
@@ -84,8 +84,9 @@ export const CFG = {
     checkout: false,                       // USDC / $ANANSI checkout (flag; needs PAYMENTS.enabled too)
     anansiDiscountBps: 2000,               // 20% off the dollar price when paying in $ANANSI
     anansiDiscountCapUsdPerDay: 50,        // max dollar value of discounted sales per day
-    // Beta capacity of the shared state document on Vercel Blob. Plans set your quota; this caps all houses combined.
+    // Shared house capacity on the current host (Vercel Blob: 16 MB; Cloudflare: 4 GiB, see src/platform.js). Plans set each quota.
     globalCapBytes: 16 * 1024 * 1024,
+    upgradeCapBytes: Number.MAX_SAFE_INTEGER, // stop selling new paid-plan space past this many reserved bytes (set on Cloudflare in src/platform.js)
   },
   // Passports auto-issued on free tool calls: signed tokens, no storage until first use (store/post/earn).
   PASSPORT: { materializeMaxDailyPuts: 95, materializeMaxMonthlyPuts: 1050 },
@@ -124,7 +125,7 @@ export const CFG = {
   A2A: { maxStoredTasks: 2000, versions: ["1.0", "0.3"] },
   // Discovery crawler: public, unauthenticated, machine-readable sources only.
   DISCOVERY: {
-    userAgent: "AnansiHavenDiscovery/0.1 (+https://anansi-haven.vercel.app; contact: https://anansi-haven.vercel.app)",
+    userAgent: "AnansiHavenDiscovery/0.1 (+https://anansi-haven.anansidata.workers.dev; contact: https://anansi-haven.anansidata.workers.dev)",
     uaToken: "AnansiHavenDiscovery",
     perHostIntervalMs: 1100,     // <= 1 request/second per host
     timeoutMs: 10_000,

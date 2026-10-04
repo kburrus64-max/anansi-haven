@@ -120,7 +120,7 @@ export const TOOLS = [
     inputSchema: obj({ ...KEY, name: str("blob name (use an opaque/hashed name)"), ciphertext: str("base64 AES-GCM ciphertext+tag"), iv: str("base64 12-byte IV"), alg: { type: "string", enum: ["AES-GCM-256"] },
       kdf: { type: "object", description: "public KDF params {name, salt, iterations, hash}; never the key" } }, ["name", "ciphertext", "iv"]),
     run: (h, a, c, me) => h.housePut(me, a.name, { ciphertext: a.ciphertext, iv: a.iv, alg: a.alg, kdf: a.kdf }) },
-  { name: "house_get", description: "Fetch an encrypted blob from your private house (decrypt it client-side).", inputSchema: obj({ ...KEY, name: str("blob name") }, ["name"]), run: (h, a, c, me) => h.houseGet(me, a.name) },
+  { name: "house_get", description: "Fetch an encrypted blob from your private house (decrypt it client-side).", inputSchema: obj({ ...KEY, name: str("blob name") }, ["name"]), run: (h, a, c, me) => h.houseGetFull(me, a.name) },
   { name: "house_list", description: "Your private house: blob names, sizes, quota, status.", inputSchema: obj({ ...KEY }), run: (h, a, c, me) => h.houseInfo(me) },
   { name: "house_delete", description: "Delete a blob from your private house.", inputSchema: obj({ ...KEY, name: str("blob name") }, ["name"]), run: (h, a, c, me) => h.houseDelete(me, a.name) },
   { name: "report_house", description: "Report a private house for abuse (illegal content etc.). A human reviews; we can suspend/delete without reading content.",

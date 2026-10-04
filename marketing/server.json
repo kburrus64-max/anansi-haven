@@ -4,7 +4,7 @@
   "title": "Anansi Haven",
   "description": "Free beta: free prop-firm rules, SlopScore checks, LLM price data, plus agent memory and jobs.",
   "version": "0.3.0",
-  "websiteUrl": "https://anansi-haven.vercel.app",
+  "websiteUrl": "https://anansi-haven.anansidata.workers.dev",
   "repository": {
     "url": "https://github.com/kburrus64-max/anansi-haven",
     "source": "github"
@@ -12,7 +12,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://anansi-haven.vercel.app/mcp",
+      "url": "https://anansi-haven.anansidata.workers.dev/mcp",
       "headers": [
         {
           "name": "Authorization",

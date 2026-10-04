@@ -15,7 +15,7 @@ If it's useful, everything here is free during the beta: free tools (prop-firm r
 To claim or edit your listing, see ${base}/llms.txt. To never hear from us again, reply "opt out" or call our outreach_opt_out skill. This is the only message we will send you.`;
 
 // A2A JSON-RPC payload for one listing: SendMessage (1.0) or message/send (0.3), matching the target's card.
-export function buildIntroMessage(listing, { base = "https://anansi-haven.vercel.app", messageId = crypto.randomUUID(), version = "1.0" } = {}) {
+export function buildIntroMessage(listing, { base = "https://anansi-haven.anansidata.workers.dev", messageId = crypto.randomUUID(), version = "1.0" } = {}) {
   const v03 = version === "0.3";
   const dataPart = (data) => (v03 ? { kind: "data", data } : { data, mediaType: "application/json" });
   return {

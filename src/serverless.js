@@ -1,4 +1,4 @@
-// Serverless entry logic (Vercel Node runtime). Each request runs as one storage transaction:
+// Serverless entry logic (Vercel Node runtime; the buffered core is reused by the Cloudflare Worker). Each request runs as one storage transaction:
 // load state -> run the normal HTTP handler against a buffered response -> commit if changed.
 // On a write conflict the request is replayed against fresh state, so the response always matches what was stored.
 import { createHandler } from "./app.js";
@@ -55,35 +55,41 @@ async function rawBody(req) {
   return Buffer.concat(chunks);
 }
 
+// Run one buffered request: { method, url, headers, body: Buffer|null } -> { status, headers, body }.
+// Shared by the Vercel function below and the Cloudflare Durable Object (src/worker.js).
+export async function runBuffered(r0, { adapter, shared: sh = shared, opts = {}, flush = maybeStandaloneFlush } = {}) {
+  const fakeReq = () => ({ method: r0.method, url: r0.url, headers: r0.headers, socket: { remoteAddress: r0.ip },
+    async *[Symbol.asyncIterator]() { if (r0.body && r0.body.length) yield r0.body; } });
+  const withNoStore = (r) => (r.headers["cache-control"] ? r : { ...r, headers: { "cache-control": "no-store", ...r.headers } });
+  try {
+    if (r0.stateless ?? isStateless(r0.method, r0.url, r0.body)) {
+      const store = new Store(null); store.state = emptyState();
+      const r = new BufferedRes();
+      await createHandler(new Haven({ store }), { trustProxy: true, shared: sh, ...opts })(fakeReq(), r);
+      if (flush) await flush(adapter);
+      return withNoStore(r);
+    }
+    const out = await withHaven(adapter, async (haven) => {
+      const r = new BufferedRes();
+      await createHandler(haven, { trustProxy: true, shared: sh, ...opts })(fakeReq(), r);
+      return r;
+    }, { beforeCommit: piggyback });
+    return withNoStore(out);
+  } catch (e) {
+    console.error("haven request failed", e?.code, e?.message);
+    return { status: e.status || 500, headers: { "cache-control": "no-store", "content-type": "application/json", "retry-after": "5" }, body: JSON.stringify({ error: e.code || "error", message: e.status ? e.message : "internal error" }) };
+  }
+}
+export const CORS_PREFLIGHT = { status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS", "access-control-allow-headers": "authorization, content-type, mcp-session-id, mcp-protocol-version, a2a-version, x-admin-token" }, body: "" };
+export { BufferedRes, MAX_BODY };
+
 export function makeServerlessHandler({ adapter: a, ...opts } = {}) {
   return async function handler(req, res) {
     adapter ||= a || adapterFromEnv();
-    const send = (r) => { res.writeHead(r.status, { "cache-control": "no-store", ...r.headers }); res.end(r.body); };
+    const send = (r) => { res.writeHead(r.status, r.headers); res.end(r.body); };
     let body;
-    try { body = await rawBody(req); } catch (e) { return send({ status: e.status || 400, headers: { "content-type": "application/json" }, body: JSON.stringify({ error: "bad_body", message: e.message }) }); }
-    if (req.method === "OPTIONS") return send({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS", "access-control-allow-headers": "authorization, content-type, mcp-session-id, mcp-protocol-version, a2a-version, x-admin-token" }, body: "" });
-    const fakeReq = () => ({ method: req.method, url: req.url, headers: req.headers, socket: { remoteAddress: req.socket?.remoteAddress },
-      async *[Symbol.asyncIterator]() { if (body && body.length) yield body; } });
-    try {
-      if (isStateless(req.method, req.url, body)) {
-        const store = new Store(null); store.state = emptyState();
-        const r = new BufferedRes();
-        await createHandler(new Haven({ store }), { trustProxy: true, shared, ...opts })(fakeReq(), r);
-        await maybeStandaloneFlush(adapter);
-        if (r.headers["cache-control"]) return (res.writeHead(r.status, r.headers), res.end(r.body));
-        return send(r);
-      }
-      const out = await withHaven(adapter, async (haven) => {
-        const r = new BufferedRes();
-        await createHandler(haven, { trustProxy: true, shared, ...opts })(fakeReq(), r);
-        return r;
-      }, { beforeCommit: piggyback });
-      // agent card / feeds are public and cacheable; keep their own cache headers
-      if (out.headers["cache-control"]) return (res.writeHead(out.status, out.headers), res.end(out.body));
-      return send(out);
-    } catch (e) {
-      console.error("haven request failed", e?.code, e?.message);
-      return send({ status: e.status || 500, headers: { "content-type": "application/json", "retry-after": "5" }, body: JSON.stringify({ error: e.code || "error", message: e.status ? e.message : "internal error" }) });
-    }
+    try { body = await rawBody(req); } catch (e) { return send({ status: e.status || 400, headers: { "cache-control": "no-store", "content-type": "application/json" }, body: JSON.stringify({ error: "bad_body", message: e.message }) }); }
+    if (req.method === "OPTIONS") return send({ ...CORS_PREFLIGHT, headers: { "cache-control": "no-store", ...CORS_PREFLIGHT.headers } });
+    return send(await runBuffered({ method: req.method, url: req.url, headers: req.headers, ip: req.socket?.remoteAddress, body }, { adapter, opts }));
   };
 }

@@ -26,8 +26,9 @@ const bytes = (v) => Buffer.byteLength(typeof v === "string" ? v : JSON.stringif
 const clean = (s, max = 200) => String(s ?? "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, max);
 
 export class Haven {
-  constructor({ store, now = () => Date.now() }) {
+  constructor({ store, now = () => Date.now(), blobs = null }) {
     this.store = store; this.now = now;
+    this.blobs = blobs; this.blobOps = []; // optional external blob store for house ciphertext (Cloudflare)
     this.S = store.state;
   }
   save() { this.store.save(); }

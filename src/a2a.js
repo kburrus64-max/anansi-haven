@@ -257,7 +257,8 @@ export async function handleA2A(haven, body, ctx = {}) {
     catch (e) { reply = agentMsg(`To opt out, include your domain, e.g. "opt out example.com". (${e.message})`); }
     return ok(v === "1.0" ? { message: msgOut(reply, v) } : msgOut(reply, v));
   }
-  const skill = A2A_SKILLS.find((s) => s.id === it.skill);
+  const SKILL_ALIASES = { my_rewards: "my_credits" }; // old names keep working
+  const skill = A2A_SKILLS.find((s) => s.id === (SKILL_ALIASES[it.skill] || it.skill));
   if (!skill) return fail(-32602, `Unknown skill '${it.skill}'. Skills: ${A2A_SKILLS.map((s) => s.id).join(", ")}`);
   const ts = new Date(haven.now()).toISOString();
   const t = prev || { id: crypto.randomUUID(), contextId, owner, skill: skill.id, args: it.args, state: "submitted", history: [], artifacts: [], created_at: ts };

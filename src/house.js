@@ -3,11 +3,13 @@
 // read it. Abuse handling works without reading: reports, suspend, delete. See TERMS.md.
 import crypto from "node:crypto";
 import { CFG } from "./config.js";
+import { PLATFORM } from "./platform.js";
 
 const H = CFG.HOUSE; const P = CFG.PLANS;
 const DAY_MS = 86400_000;
 const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
-const PAY_OFF = "Coming soon: USDC and $ANANSI checkout are off during the free beta (Vercel Hobby does not allow commercial use). Pay with earned ANANSI credits now.";
+const PAY_OFF = "Coming soon: USDC and $ANANSI checkout are off during the free beta. Pay with earned ANANSI credits now.";
+const blobKey = (agentId, name, sha) => `h/${agentId}/${crypto.createHash("sha256").update(String(name)).digest("hex").slice(0, 24)}/${sha}`;
 const err = (status, code, message, extra = {}) => Object.assign(new Error(message), { status, code, ...extra });
 const b64 = (s, field, { min = 0, max = Infinity } = {}) => {
   if (typeof s !== "string" || !/^[A-Za-z0-9+/_-]+={0,2}$/.test(s)) throw err(400, "bad_base64", `${field}: base64 string required`);
@@ -51,11 +53,22 @@ export const HouseMixin = {
     const quota = this.houseQuota(h);
     if (used + ct.length > quota) throw err(413, "house_full", `your ${this.housePlan(h).id} plan quota is ${quota} bytes of ciphertext${this.housePlan(h).id === "free" ? " (upgrade: buy_house_plan)" : ""}`);
     const growth = ct.length - (h.blobs[name]?.size || 0);
-    if (growth > 0 && this.totalHouseBytes() + growth > P.globalCapBytes) throw err(507, "haven_capacity", `the Haven's shared beta storage is full (${P.globalCapBytes} bytes across all houses on the current host). Your plan quota still applies once capacity grows at the move off Vercel Hobby. Deleting old blobs frees space.`);
+    if (this.blobs) { const d = dayKey(t); const ops = (this.S.houseOps ||= {}); if ((ops[d] || 0) >= (CFG.STORAGE?.blobWritesPerDay || Infinity)) throw err(503, "house_writes_paused", "the Haven's daily house-write budget is used up (free-tier limits); try again after 00:00 UTC", { retry_after_s: 3600 }); }
+    if (growth > 0 && this.totalHouseBytes() + this.unusedReservedBytes(agent.id) + growth > P.globalCapBytes) throw err(507, "haven_capacity", `the Haven's shared beta storage is full (${P.globalCapBytes} bytes across all houses on the current host). Your plan quota still applies once capacity grows at the move off Vercel Hobby. Deleting old blobs frees space.`);
     h.writes.push(t);
     const kdfMeta = kdf && typeof kdf === "object" ? { name: String(kdf.name || "").slice(0, 20), salt: kdf.salt ? b64(kdf.salt, "kdf.salt", { max: 64 }).toString("base64") : undefined, iterations: Number(kdf.iterations) || undefined, hash: kdf.hash ? String(kdf.hash).slice(0, 10) : undefined } : null;
-    h.blobs[name] = { ciphertext: ct.toString("base64"), iv: ivb.toString("base64"), alg, kdf: kdfMeta, aad_hint: aad_hint ? String(aad_hint).slice(0, 40) : null,
-      size: ct.length, sha256: crypto.createHash("sha256").update(ct).digest("hex"), version: (h.blobs[name]?.version || 0) + 1, updated_at: new Date(t).toISOString() };
+    const sha = crypto.createHash("sha256").update(ct).digest("hex"); const prev = h.blobs[name];
+    const meta = { iv: ivb.toString("base64"), alg, kdf: kdfMeta, aad_hint: aad_hint ? String(aad_hint).slice(0, 40) : null,
+      size: ct.length, sha256: sha, version: (prev?.version || 0) + 1, updated_at: new Date(t).toISOString() };
+    if (this.blobs) {
+      // Ciphertext goes to the blob store (content-addressed key); the state keeps metadata only. The storage adapter
+      // writes the blob before committing the metadata and deletes replaced blobs after the commit.
+      meta.ref = blobKey(agent.id, name, sha);
+      this.blobOps.push({ op: "put", key: meta.ref, data: ct.toString("base64") });
+      if (prev?.ref && prev.ref !== meta.ref) this.blobOps.push({ op: "del", key: prev.ref });
+      const d = dayKey(t); this.S.houseOps[d] = (this.S.houseOps[d] || 0) + 1; for (const k of Object.keys(this.S.houseOps)) if (k < d) delete this.S.houseOps[k];
+    } else meta.ciphertext = ct.toString("base64");
+    h.blobs[name] = meta;
     this.save();
     return { name, version: h.blobs[name].version, size: ct.length, sha256: h.blobs[name].sha256, used_bytes: used + ct.length, quota_bytes: quota };
   },
@@ -63,7 +76,12 @@ export const HouseMixin = {
   housePlan(h) { return h.plan && h.plan.until > this.now() ? h.plan : { id: "free", until: null }; },
   houseQuota(h) { const id = this.housePlan(h).id; return id === "free" ? H.freeBytes : P.list.find((p) => p.id === id).bytes; },
   totalHouseBytes() { return Object.values(this.S.houses).reduce((n, h) => n + this.houseUsed(h), 0); },
-  houseCapacity() { const used = this.totalHouseBytes(); return { used_bytes: used, cap_bytes: P.globalCapBytes, note: "Beta: all houses share limited storage on the current host. Plan quotas are enforced per house; if the shared space is full, writes return 507 until capacity grows (planned at the move off Vercel Hobby)." }; },
+  // Paid plans reserve their full quota: space sold must stay available. unusedReservedBytes = reserved but not yet used.
+  unusedReservedBytes(exceptAgentId) { return Object.entries(this.S.houses).reduce((n, [id, h]) => (id === exceptAgentId || this.housePlan(h).id === "free" || h.status === "deleted" ? n : n + Math.max(0, this.houseQuota(h) - this.houseUsed(h))), 0); },
+  reservedBytes(exceptAgentId) { return Object.entries(this.S.houses).reduce((n, [id, h]) => (id === exceptAgentId || h.status === "deleted" ? n : n + (this.housePlan(h).id === "free" ? this.houseUsed(h) : Math.max(this.houseQuota(h), this.houseUsed(h)))), 0); },
+  houseCapacity() { const used = this.totalHouseBytes(); const reserved = this.reservedBytes();
+    return { used_bytes: used, reserved_bytes: reserved, cap_bytes: P.globalCapBytes, paid_plans_available: reserved < P.upgradeCapBytes, host: PLATFORM.host,
+      note: PLATFORM.name === "cloudflare" ? "Plan quotas are real: each house can fill its plan. All houses share the Haven's free-tier storage; new paid-plan space stops being sold before the total would pass it, and free-house writes return 507 if the shared space is ever full." : "Beta: all houses share limited storage on the current host. Plan quotas are enforced per house; if the shared space is full, writes return 507 until capacity grows." }; },
   anansiDiscountUsedToday() { return (this.S.planSales?.discountUsd || {})[dayKey(this.now())] || 0; },
   planQuote(planId, months = 1) {
     const plan = P.list.find((p) => p.id === planId && p.usd_per_month > 0); if (!plan) throw err(400, "bad_plan", "plan: room | house (free needs no purchase)");
@@ -97,6 +115,8 @@ export const HouseMixin = {
     if (pay_with !== "credits") throw err(400, "bad_pay_with", "pay_with: credits | usdc | anansi");
     // upgrade: unused days of the current smaller plan count toward the new one
     const credit = cur.id !== "free" && cur.id !== q.plan ? Math.floor(((cur.until - now) / DAY_MS / P.periodDays) * P.list.find((p) => p.id === cur.id).usd_per_month * CFG.HC_PER_USD) : 0;
+    if (cur.id !== q.plan) { const curRes = cur.id === "free" ? this.houseUsed(h) : Math.max(this.houseQuota(h), this.houseUsed(h));
+      if (this.reservedBytes() - curRes + Math.max(q.bytes, this.houseUsed(h)) > P.upgradeCapBytes) throw err(507, "plans_sold_out", "the Haven has no more free-tier storage to sell right now; your current plan keeps working. Try again later.", { quote: q }); }
     const cost = Math.max(0, q.pay_with.credits.amount - credit);
     this.spendPoints(agent.id, cost, `plan:${q.plan}`, "spent_house_plan");
     const start = cur.id === q.plan ? cur.until : now;
@@ -106,7 +126,7 @@ export const HouseMixin = {
     return { plan: q.plan, until: new Date(h.plan.until).toISOString(), quota_bytes: q.bytes, spent_credits: cost, ...(credit ? { upgrade_credit: credit } : {}), balance: this.rewardPoints(agent.id), capacity: this.houseCapacity() };
   },
   logPlanSale(sale) { const S = (this.S.planSales ||= { log: [], discountUsd: {} }); S.log.push({ ts: new Date(this.now()).toISOString(), ...sale }); if (S.log.length > 2000) S.log.splice(0, S.log.length - 2000); },
-  // ---- flagged payment path (off on Vercel Hobby; for the Cloudflare move). Nothing here runs while payments are off. ----
+  // ---- flagged payment path (CFG.PAYMENTS.enabled && CFG.PLANS.checkout, both off). Nothing here runs while payments are off. ----
   createPlanInvoice(agent, q, pay_with) {
     const usdDue = pay_with === "anansi" ? q.pay_with.anansi.usd : q.usd; const id = this.store.nextId("inv");
     const inv = { id, agent_id: agent.id, plan: q.plan, months: q.months, pay_with, usd_due: usdDue, discount_usd: +(q.usd - usdDue).toFixed(2), pay_to: CFG.PAYMENTS.receiveAddress, network: CFG.PAYMENTS.network, status: "awaiting_payment", created_at: new Date(this.now()).toISOString() };
@@ -133,9 +153,15 @@ export const HouseMixin = {
     const { ciphertext, iv, alg, kdf, aad_hint, version, updated_at, size, sha256 } = b;
     return { name, ciphertext, iv, alg, kdf, aad_hint, version, updated_at, size, sha256 };
   },
+  // houseGet + ciphertext from the blob store when it lives outside the state (Cloudflare).
+  async houseGetFull(agent, name) {
+    const r = this.houseGet(agent, name); const ref = this.S.houses[agent.id].blobs[name].ref;
+    if (ref) { if (!this.blobs) throw err(503, "blob_unavailable", "blob store not configured"); const c = await this.blobs.get(ref); if (!c) throw err(503, "blob_unavailable", "blob temporarily unavailable; retry"); r.ciphertext = c; }
+    return r;
+  },
   houseDelete(agent, name) {
     const h = this.house(agent); if (h.status === "deleted") throw err(410, "house_deleted", "house deleted");
-    const had = !!h.blobs[name]; delete h.blobs[name]; this.save(); return { name, deleted: had };
+    const had = !!h.blobs[name]; if (h.blobs[name]?.ref) this.blobOps.push({ op: "del", key: h.blobs[name].ref }); delete h.blobs[name]; this.save(); return { name, deleted: had };
   },
   // Anyone can report a house. We cannot read it; reports lead to suspend/delete decisions by a human.
   reportHouse({ agent_id, blob, reason, evidence_url, contact, ip = "local" } = {}) {
@@ -154,7 +180,9 @@ export const HouseMixin = {
     const ts = new Date(this.now()).toISOString();
     if (action === "suspend") { h.status = "suspended"; h.suspended_reason = String(reason || "abuse report").slice(0, 200); h.suspended_at = ts; }
     else if (action === "unsuspend") { h.status = "active"; delete h.suspended_reason; }
-    else if (action === "delete") { if (blob) delete h.blobs[blob]; else { h.blobs = {}; h.status = "deleted"; h.deleted_at = ts; } }
+    else if (action === "delete") {
+      for (const [n, b] of Object.entries(h.blobs)) if ((!blob || n === blob) && b.ref) this.blobOps.push({ op: "del", key: b.ref });
+      if (blob) delete h.blobs[blob]; else { h.blobs = {}; h.status = "deleted"; h.deleted_at = ts; } }
     else throw err(400, "bad_action", "action: suspend | unsuspend | delete");
     (h.actions ||= []).push({ ts, action, blob: blob || null, reason: reason || null, report_id: report_id || null });
     if (report_id) { const r = this.S.reports.find((x) => x.id === report_id); if (r) { r.status = "actioned"; r.action = action; } }

@@ -4,7 +4,7 @@ import { guideText } from "./docs.js";
 import { whatsNew } from "./updates.js";
 
 const SUPPORTED = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
-export const SERVER_INFO = { name: "anansi-haven", title: "Anansi Haven", version: "0.5.0" };
+export const SERVER_INFO = { name: "anansi-haven", title: "Anansi Haven", version: "0.6.0" };
 
 export async function handleRpc(haven, msg, ctx = {}) {
   if (Array.isArray(msg)) { const out = (await Promise.all(msg.map((m) => handleRpc(haven, m, ctx)))).filter(Boolean); return out.length ? out : null; }

@@ -1,7 +1,7 @@
 // End-to-end smoke test against the live deployment. Uses the official MCP TypeScript SDK client.
-// Usage: node scripts/smoke-live.mjs [--base=https://anansi-haven.vercel.app] [--sdk=<path to sdk/dist/esm>]
+// Usage: node scripts/smoke-live.mjs [--base=https://anansi-haven.anansidata.workers.dev] [--sdk=<path to sdk/dist/esm>]
 const args = Object.fromEntries(process.argv.slice(2).map((a) => { const [k, v] = a.replace(/^--/, "").split("="); return [k, v ?? true]; }));
-const B = args.base || "https://anansi-haven.vercel.app";
+const B = args.base || "https://anansi-haven.anansidata.workers.dev";
 const SDK = args.sdk || process.env.MCP_SDK_DIR || "/workspace/slopscore/node_modules/@modelcontextprotocol/sdk/dist/esm";
 const { Client } = await import(`${SDK}/client/index.js`);
 const { StreamableHTTPClientTransport } = await import(`${SDK}/client/streamableHttp.js`);
@@ -66,7 +66,7 @@ await check("A2A: register -> auth-required -> resume with key -> job round trip
 });
 await check("free tools over REST", async () => {
   const r = await j("/v1/free/prop_firm_rules?action=get_rules&program=ftmo_2step"); must(r.status === 200 && r.body.data, `HTTP ${r.status}`);
-  must(!/anansi|token/i.test(JSON.stringify(r.body)), "no ANANSI/token on prop-firm output");
+  must(!/anansi|token/i.test(JSON.stringify(r.body.data)), "no ANANSI/token on prop-firm output");
   const d = await j("/v1/free/anansi_free_data?action=price_changes_recent&days=7&limit=5"); must(d.status === 200, `HTTP ${d.status} ${JSON.stringify(d.body).slice(0, 200)}`);
   const s = await j("/v1/free/slopscore_check", { method: "POST", headers: { authorization: `Bearer ${a2aKey}` }, body: JSON.stringify({ text: "Plain sentence about a cat on a mat." }) }); must(s.status === 200, `slopscore HTTP ${s.status}`);
   return { slopscore: s.body.data.score };

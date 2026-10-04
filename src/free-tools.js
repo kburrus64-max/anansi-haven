@@ -9,7 +9,7 @@ import { CFG } from "./config.js";
 const F = CFG.FREE_TOOLS;
 const day = (t) => new Date(t).toISOString().slice(0, 10);
 const err = (status, code, message) => Object.assign(new Error(message), { status, code });
-const UA = "AnansiHaven/0.5 (+https://anansi-haven.vercel.app)";
+const UA = "AnansiHaven/0.5 (+https://anansi-haven.anansidata.workers.dev)";
 
 async function getJson(haven, url, init = {}) {
   const f = haven.fetchImpl || globalThis.fetch;

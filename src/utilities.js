@@ -1,5 +1,5 @@
 // Free, read-only, no-key utilities. All are stateless (no storage reads or writes) and cheap enough for
-// Vercel Hobby limits. url_metadata is the only one that makes an outbound request, and it goes through
+// free-tier hosting. url_metadata is the only one that makes an outbound request, and it goes through
 // safeFetchText: http(s) on ports 80/443 only, DNS-resolved and pinned, private/reserved IPs refused at every
 // redirect hop, 256 KB / 6 s caps, text-ish content types only.
 import crypto from "node:crypto";
@@ -270,7 +270,24 @@ function ipIsPublic(ip) {
   return false;
 }
 export { ipIsPublic };
-async function resolvePublic(host, lookup = dns.promises.lookup) {
+// On Cloudflare Workers there is no system resolver or socket pinning: resolve over DNS-over-HTTPS, refuse
+// non-public answers, then use fetch() with manual redirects (Workers cannot reach private networks anyway).
+export const ON_WORKERS = typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
+async function dohLookup(h) {
+  const out = [];
+  for (const type of ["A", "AAAA"]) {
+    const r = await fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(h)}&type=${type}`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(3000) });
+    const j = await r.json(); for (const a of j.Answer || []) if (a.type === 1 || a.type === 28) out.push({ address: a.data, family: a.type === 1 ? 4 : 6 });
+  }
+  if (!out.length) throw new Error("no addresses"); return out;
+}
+async function readCapped(r, maxBytes) {
+  const reader = r.body?.getReader(); if (!reader) return { text: "", truncated: false };
+  const chunks = []; let n = 0; let truncated = false;
+  for (;;) { const { done, value } = await reader.read(); if (done) break; n += value.length; if (n > maxBytes) { truncated = true; chunks.push(value.subarray(0, value.length - (n - maxBytes))); try { await reader.cancel(); } catch { /* ignore */ } break; } chunks.push(value); }
+  return { text: Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8"), truncated };
+}
+async function resolvePublic(host, lookup = ON_WORKERS ? dohLookup : dns.promises.lookup) {
   const h = host.replace(/^\[|\]$/g, "").toLowerCase();
   if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal") || h.endsWith(".lan") || h.endsWith(".home.arpa")) throw err(400, "blocked_host", "local/internal hostnames are not fetched");
   if (net.isIP(h)) { if (!ipIsPublic(h)) throw err(400, "blocked_ip", "private, loopback or reserved addresses are not fetched"); return { address: h, family: net.isIP(h) }; }
@@ -279,7 +296,7 @@ async function resolvePublic(host, lookup = dns.promises.lookup) {
   return addrs[0];
 }
 const TEXTY = /^(text\/html|application\/xhtml\+xml|text\/plain|application\/json|application\/ld\+json|text\/markdown)/i;
-export async function safeFetchText(rawUrl, { maxBytes = 256 * 1024, timeoutMs = 6000, maxRedirects = 3, lookup, userAgent = "AnansiHaven-URLMeta/0.4 (+https://anansi-haven.vercel.app)" } = {}) {
+export async function safeFetchText(rawUrl, { maxBytes = 256 * 1024, timeoutMs = 6000, maxRedirects = 3, lookup, userAgent = "AnansiHaven-URLMeta/0.4 (+https://anansi-haven.anansidata.workers.dev)" } = {}) {
   let url; try { url = new URL(String(rawUrl)); } catch { throw err(400, "bad_url", "url: absolute http(s) URL required"); }
   const started = Date.now(); const hops = [];
   for (let hop = 0; hop <= maxRedirects; hop++) {
@@ -288,7 +305,15 @@ export async function safeFetchText(rawUrl, { maxBytes = 256 * 1024, timeoutMs =
     if (url.port && !["80", "443"].includes(url.port)) throw err(400, "bad_port", "only ports 80 and 443 are fetched");
     const pinned = await resolvePublic(url.hostname, lookup);
     const left = timeoutMs - (Date.now() - started); if (left <= 0) throw err(504, "timeout", "fetch timed out");
-    const res = await new Promise((resolve, reject) => {
+    const res = ON_WORKERS ? await (async () => {
+      void pinned; let r;
+      try { r = await fetch(url, { method: "GET", redirect: "manual", headers: { "user-agent": userAgent, accept: "text/html,application/xhtml+xml,text/plain;q=0.8,application/json;q=0.7" }, signal: AbortSignal.timeout(left) }); }
+      catch (e) { throw e?.name === "TimeoutError" ? err(504, "timeout", "fetch timed out") : err(424, "fetch_failed", "could not fetch the URL"); }
+      if (r.status >= 300 && r.status < 400 && r.headers.get("location")) return { redirect: r.headers.get("location"), status: r.status };
+      const type = String(r.headers.get("content-type") || "");
+      if (!TEXTY.test(type)) { try { await r.body?.cancel(); } catch { /* ignore */ } return { status: r.status, type, text: "", skipped: "non-text content type" }; }
+      return { status: r.status, type, ...(await readCapped(r, maxBytes)) };
+    })() : await new Promise((resolve, reject) => {
       const mod = url.protocol === "https:" ? https : http;
       const req = mod.request(url, { method: "GET", headers: { "user-agent": userAgent, accept: "text/html,application/xhtml+xml,text/plain;q=0.8,application/json;q=0.7", "accept-encoding": "identity" },
         lookup: (_h, opts, cb) => (opts && opts.all ? cb(null, [{ address: pinned.address, family: pinned.family }]) : cb(null, pinned.address, pinned.family)), timeout: left }, (r) => {
@@ -310,13 +335,18 @@ export async function safeFetchText(rawUrl, { maxBytes = 256 * 1024, timeoutMs =
 }
 // SSRF-safe JSON POST for opt-in update notifications: https on port 443 only, public IPs only (pinned DNS),
 // redirects are NOT followed, small response cap, short timeout.
-export async function safePostJson(rawUrl, payload, { timeoutMs = 5000, maxBytes = 16 * 1024, lookup, userAgent = "AnansiHaven-Updates/0.5 (+https://anansi-haven.vercel.app/updates)" } = {}) {
+export async function safePostJson(rawUrl, payload, { timeoutMs = 5000, maxBytes = 16 * 1024, lookup, userAgent = "AnansiHaven-Updates/0.5 (+https://anansi-haven.anansidata.workers.dev/updates)" } = {}) {
   let url; try { url = new URL(String(rawUrl)); } catch { throw err(400, "bad_url", "absolute https URL required"); }
   if (url.protocol !== "https:") throw err(400, "bad_url", "https only");
   if (url.username || url.password) throw err(400, "bad_url", "URLs with credentials are not allowed");
   if (url.port && url.port !== "443") throw err(400, "bad_port", "only port 443");
   const pinned = await resolvePublic(url.hostname, lookup);
   const body = Buffer.from(JSON.stringify(payload));
+  if (ON_WORKERS) {
+    let r; try { r = await fetch(url, { method: "POST", redirect: "manual", headers: { "user-agent": userAgent, "content-type": "application/json", accept: "application/json, text/plain;q=0.5" }, body, signal: AbortSignal.timeout(timeoutMs) }); }
+    catch (e) { throw e?.name === "TimeoutError" ? err(504, "timeout", "endpoint timed out") : e; }
+    const { text } = await readCapped(r, maxBytes); return { status: r.status, text: text.slice(0, maxBytes) };
+  }
   return await new Promise((resolve, reject) => {
     const req = https.request(url, { method: "POST", headers: { "user-agent": userAgent, "content-type": "application/json", accept: "application/json, text/plain;q=0.5", "content-length": body.length },
       lookup: (_h, opts, cb) => (opts && opts.all ? cb(null, [{ address: pinned.address, family: pinned.family }]) : cb(null, pinned.address, pinned.family)), timeout: timeoutMs }, (r) => {
