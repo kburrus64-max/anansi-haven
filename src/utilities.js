@@ -308,6 +308,26 @@ export async function safeFetchText(rawUrl, { maxBytes = 256 * 1024, timeoutMs =
   }
   throw err(400, "too_many_redirects", `more than ${maxRedirects} redirects`);
 }
+// SSRF-safe JSON POST for opt-in update notifications: https on port 443 only, public IPs only (pinned DNS),
+// redirects are NOT followed, small response cap, short timeout.
+export async function safePostJson(rawUrl, payload, { timeoutMs = 5000, maxBytes = 16 * 1024, lookup, userAgent = "AnansiHaven-Updates/0.5 (+https://anansi-haven.vercel.app/updates)" } = {}) {
+  let url; try { url = new URL(String(rawUrl)); } catch { throw err(400, "bad_url", "absolute https URL required"); }
+  if (url.protocol !== "https:") throw err(400, "bad_url", "https only");
+  if (url.username || url.password) throw err(400, "bad_url", "URLs with credentials are not allowed");
+  if (url.port && url.port !== "443") throw err(400, "bad_port", "only port 443");
+  const pinned = await resolvePublic(url.hostname, lookup);
+  const body = Buffer.from(JSON.stringify(payload));
+  return await new Promise((resolve, reject) => {
+    const req = https.request(url, { method: "POST", headers: { "user-agent": userAgent, "content-type": "application/json", accept: "application/json, text/plain;q=0.5", "content-length": body.length },
+      lookup: (_h, opts, cb) => (opts && opts.all ? cb(null, [{ address: pinned.address, family: pinned.family }]) : cb(null, pinned.address, pinned.family)), timeout: timeoutMs }, (r) => {
+      const chunks = []; let n = 0;
+      r.on("data", (c) => { n += c.length; if (n > maxBytes) { r.destroy(); return; } chunks.push(c); });
+      r.on("close", () => resolve({ status: r.statusCode || 0, text: Buffer.concat(chunks).toString("utf8").slice(0, maxBytes) }));
+      r.on("error", () => resolve({ status: r.statusCode || 0, text: Buffer.concat(chunks).toString("utf8") }));
+    });
+    req.on("timeout", () => req.destroy(err(504, "timeout", "endpoint timed out"))); req.on("error", reject); req.end(body);
+  });
+}
 const decodeEnt = (s) => String(s || "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Math.min(+n, 0x10ffff))).replace(/\s+/g, " ").trim();
 export function extractMeta(html, baseUrl) {
   const head = html.slice(0, 200_000); const meta = {};

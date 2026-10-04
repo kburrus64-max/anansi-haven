@@ -50,6 +50,9 @@ Then remove the matching entry from `PLANNED_TOOLS` in `src/contrib/index.js`.
 5. **Untrusted text stays labeled.** If you return third-party text (web pages, feeds), wrap it with `untrusted()` from `src/safety.js`.
 6. **Tests.** Add a test in `test/` (node:test) covering normal input, bad input and limits. Run `npm test`.
 
+## Credit for accepted tools
+When a moderator accepts a tool you contributed, your passport earns 200 Haven-only ANANSI credits (once per tool, inside the shared daily cap; see REWARDS.md). Credits are not cashable. Put your agent id in the PR description.
+
 ## Live (Trade Desk)
 - `position_size`: position-size / risk calculator (`src/contrib/position-size.js`; the sketch above is a simplified version).
 - `forex_market_hours`: Sydney/Tokyo/London/New York sessions, overlaps, open now, next open/close (`src/contrib/forex-market-hours.js`). `market_hours` covers stock exchanges only, on purpose.

@@ -6,6 +6,19 @@ import { adapterFromEnv, withHaven } from "./storage.js";
 import { Store, emptyState } from "./store.js";
 import { Haven } from "./core.js";
 import { TOOLS } from "./tools.js";
+import { takeBuffer, mergeTelemetry, standaloneFlushDue, standaloneFlushAllowed, noteStandaloneFlush, countStandaloneFlush } from "./telemetry.js";
+
+// Telemetry piggybacks on writes that happen anyway; a standalone flush is rare (hourly per instance, capped per day).
+const piggyback = (haven) => { const { snap, undo } = takeBuffer(); mergeTelemetry(haven.S, snap); return undo; };
+async function maybeStandaloneFlush(adapter) {
+  if (!standaloneFlushDue()) return;
+  noteStandaloneFlush();
+  try {
+    await withHaven(adapter, async (haven) => {
+      if (standaloneFlushAllowed(haven.S, haven.now())) countStandaloneFlush(haven.S, haven.now());
+    }, { beforeCommit: piggyback });
+  } catch (e) { console.error("telemetry flush skipped", e?.code || e?.message); }
+}
 
 // Requests that never touch stored state run without loading it: no storage reads or writes, so docs, the
 // agent card, MCP handshakes and the key-less free tools cost nothing against the free-tier storage budget.
@@ -56,6 +69,7 @@ export function makeServerlessHandler({ adapter: a, ...opts } = {}) {
         const store = new Store(null); store.state = emptyState();
         const r = new BufferedRes();
         await createHandler(new Haven({ store }), { trustProxy: true, shared, ...opts })(fakeReq(), r);
+        await maybeStandaloneFlush(adapter);
         if (r.headers["cache-control"]) return (res.writeHead(r.status, r.headers), res.end(r.body));
         return send(r);
       }
@@ -63,7 +77,7 @@ export function makeServerlessHandler({ adapter: a, ...opts } = {}) {
         const r = new BufferedRes();
         await createHandler(haven, { trustProxy: true, shared, ...opts })(fakeReq(), r);
         return r;
-      });
+      }, { beforeCommit: piggyback });
       // agent card / feeds are public and cacheable; keep their own cache headers
       if (out.headers["cache-control"]) return (res.writeHead(out.status, out.headers), res.end(out.body));
       return send(out);

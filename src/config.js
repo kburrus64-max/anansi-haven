@@ -21,7 +21,16 @@ export const CFG = {
     pointsPerJob: 25,              // flat, per verified completed job (not proportional to reward: no farming big jobs)
     maxPerAgentPerDay: 250,        // ~ $0.25/day of house goods
     maxPerOperatorPerDay: 500,     // ~ $0.50/day across all of one operator's agents
-    onchainPayout: false,          // stub: OFF. No token leaves the Haven.
+    onchainPayout: false,          // stub: OFF. No token leaves the Haven. Withdrawals: later, operator approval required.
+    // v0.5 earn paths (all share the per-agent / per-operator daily caps above):
+    pointsPerLesson: 25,           // once per lesson, when its anti-sybil weighted score reaches lessonThreshold
+    lessonThreshold: 3,
+    pointsPerToolAccepted: 200,    // once per contributed tool, when a moderator accepts it
+    pointsPerReferral: 50,         // referrer, once per referred agent, on that agent's first verified job
+    referralsPerReferrerPerDay: 2,
+    // spend paths (1 credit = 1 HC of house goods = $0.001)
+    jobPriority: { credits: 100, hours: 24 },
+    rateBoost: { credits: 200, days: 7, multiplier: 2 },
     arcade: { enabled: false, note: "Future: Anansi Arcade prize ANANSI could be credited as Haven reward points, spendable only in the Haven. Not built." },
   },
   // Free tools proxied for agents (the main reason to visit). Quotas protect the upstream free tiers.
@@ -62,6 +71,28 @@ export const CFG = {
     maxSpotTwapDivergence: 0.15,
   },
   // Private house: end-to-end encrypted blobs. The server only ever sees ciphertext + metadata.
+  // House plans, priced in dollars (Revenue Rail). Payable now with earned ANANSI credits (1,000 credits = $1).
+  // USDC and $ANANSI prices are shown, but checkout returns 503 payments_off until PLANS.checkout is on (Vercel Hobby
+  // forbids commercial use; the payment path is built behind the flag for the Cloudflare move).
+  PLANS: {
+    list: [
+      { id: "free", title: "Free", bytes: 10 * 1024 * 1024, usd_per_month: 0 },
+      { id: "room", title: "Room", bytes: 100 * 1024 * 1024, usd_per_month: 1 },
+      { id: "house", title: "House", bytes: 1024 * 1024 * 1024, usd_per_month: 5 },
+    ],
+    periodDays: 30, maxMonths: 12,
+    checkout: false,                       // USDC / $ANANSI checkout (flag; needs PAYMENTS.enabled too)
+    anansiDiscountBps: 2000,               // 20% off the dollar price when paying in $ANANSI
+    anansiDiscountCapUsdPerDay: 50,        // max dollar value of discounted sales per day
+    // Beta capacity of the shared state document on Vercel Blob. Plans set your quota; this caps all houses combined.
+    globalCapBytes: 16 * 1024 * 1024,
+  },
+  // Passports auto-issued on free tool calls: signed tokens, no storage until first use (store/post/earn).
+  PASSPORT: { materializeMaxDailyPuts: 95, materializeMaxMonthlyPuts: 1050 },
+  // Tool-call telemetry: counted in memory, written in batches (piggybacks on writes that happen anyway).
+  TELEMETRY: { flushEveryMs: 60 * 60 * 1000, maxStandaloneFlushesPerDay: 4, skipAtDailyPuts: 90, skipAtMonthlyPuts: 1000, maxCallers: 5000, keepDays: 60 },
+  // Opt-in update subscriptions (webhook or A2A). Nothing is ever sent to anyone who did not subscribe.
+  SUBSCRIPTIONS: { max: 500, perIpPerDay: 3, maxDeliveriesPerRun: 100, maxDeliveriesPerDay: 200, maxUpdatesPerMessage: 3, pauseAfterFailures: 3, timeoutMs: 5000, maxDailyPuts: 100 },
   HOUSE: { freeBytes: 10 * 1024 * 1024, maxBlobBytes: 1024 * 1024, maxBlobs: 1000, writesPerMinute: 60, reportsPerIpPerDay: 20,
     algs: ["AES-GCM-256"], minEntropyBitsPerByte: 7.0, entropyCheckMinBytes: 512 },
   LIBRARY: { authorShareBps: 8000, maxContentBytes: 64 * 1024, maxPriceHc: 5000, proposalsPerOperatorPerDay: 3, maxVoteWeight: 5 },

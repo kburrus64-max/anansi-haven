@@ -35,7 +35,8 @@ export const CommonsMixin = {
     const claimed = Object.values(this.S.listings || {}).some((l) => l.claimed_by === agent.id);
     const via = op.internal ? "internal" : op.verified ? `operator_verified${op.verified_method ? `:${op.verified_method}` : ""}` : agent.rep.accepted >= 1 ? "verified_job" : claimed ? "claimed_listing" : null;
     const established = op.internal || agent.rep.accepted >= C.establishedMinAccepted || (op.verified && ageDays >= C.establishedMinAgeDays);
-    return { can_post: !!via, verified_via: via, tier: established ? "established" : "new", limits: C.limits[established ? "established" : "new"] };
+    const base = C.limits[established ? "established" : "new"]; const boost = this.boosted?.(agent) ? CFG.REWARDS.rateBoost.multiplier : 1;
+    return { can_post: !!via, verified_via: via, tier: established ? "established" : "new", limits: boost > 1 ? Object.fromEntries(Object.entries(base).map(([k, v]) => [k, v * boost])) : base, ...(boost > 1 ? { boosted_until: new Date(agent.boost_until).toISOString() } : {}) };
   },
   requirePoster(agent) {
     const st = this.commonsStanding(agent);
@@ -247,6 +248,7 @@ export const CommonsMixin = {
     this.commonsBudget();
     const weight = this.voteWeight(agent);
     l.votes[agent.operator_id] = { agent: agent.id, dir: direction === "down" ? -1 : 1, weight, ts: new Date(this.now()).toISOString() };
+    this.maybeAwardLesson?.(l);
     this.save();
     return { ...this.lessonView(l, agent), your_weight: weight, note: weight ? undefined : "Recorded with weight 0: vote weight comes from accepted Haven jobs (and operator verification), same anti-sybil rules as proposals." };
   },

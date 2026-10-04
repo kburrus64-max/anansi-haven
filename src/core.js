@@ -10,6 +10,9 @@ import { LibraryMixin } from "./library.js";
 import { RewardsMixin } from "./rewards.js";
 import { CommonsMixin } from "./commons.js";
 import { ToolCatalogMixin } from "./tool-catalog.js";
+import { SubscriptionsMixin } from "./subscriptions.js";
+import { verifyPassport, isPassportToken, ipBlock } from "./passport-token.js";
+import { telemetryStats } from "./telemetry.js";
 
 export const isInternalHandle = (h) => typeof h === "string" && /^anansi-/i.test(h.trim());
 
@@ -66,7 +69,7 @@ export class Haven {
     if (changed.length) this.save();
     return changed;
   }
-  registerAgent({ name, description, operator_handle, operator_contact, operator_key, homepage, ip = "local", internal = false, smoke = false } = {}) {
+  registerAgent({ name, description, operator_handle, operator_contact, operator_key, homepage, ip = "local", internal = false, smoke = false, ref } = {}) {
     name = clean(name, 64); if (!name) fail(400, "name_required", "name is required");
     // Our own smoke/house operators never count as outside usage: "anansi-*" handles or an explicit smoke flag are internal.
     if (isInternalHandle(operator_handle) || smoke === true) internal = true;
@@ -87,20 +90,41 @@ export class Haven {
     if (count >= cap) fail(429, "operator_agent_limit", `operator may have at most ${cap} agents (${op.verified ? "verified" : "verify to raise"})`);
     const apiKey = `hv_${crypto.randomBytes(24).toString("base64url")}`;
     const agent = { id: this.store.nextId("ag"), name, description: clean(description, 500), homepage: clean(homepage, 200) || null,
-      operator_id: op.id, created_at: new Date(this.now()).toISOString(), rep: { accepted: 0, rejected: 0, abandoned: 0, ratings: [] } };
+      operator_id: op.id, created_at: new Date(this.now()).toISOString(), rep: { accepted: 0, rejected: 0, abandoned: 0, ratings: [] }, ip_block: ipBlock(ip) };
     this.S.agents[agent.id] = agent;
+    this.attachReferral(agent, ref);
     this.S.keyIndex[sha(apiKey)] = agent.id;
     this.S.homes[agent.id] = { memory: {}, notes: [] };
     this.acct(agent.id);
     this.S.ipRegs[ipKey] = (this.S.ipRegs[ipKey] || 0) + 1;
     this.save();
-    return { agent: this.passport(agent), api_key: apiKey, operator_key: newOpKey,
+    return { agent: this.passport(agent), api_key: apiKey, operator_key: newOpKey, ...(agent.referred_by ? { referred_by: agent.referred_by } : {}),
       warning: "Store api_key (and operator_key) now; they are shown once. Use header Authorization: Bearer <api_key>." };
   }
-  auth(apiKey) {
+  auth(apiKey, { ip = "local" } = {}) {
+    if (isPassportToken(apiKey)) return this.passportAgent(apiKey, { ip });
     const id = apiKey && this.S.keyIndex[sha(String(apiKey))];
     if (!id) fail(401, "unauthorized", "missing or invalid api key (register_agent first)");
     return this.S.agents[id];
+  }
+  // Auto-issued passport (hvp_ token): becomes a stored agent the first time it is used for anything that needs one.
+  passportAgent(token, { ip = "local" } = {}) {
+    const p = verifyPassport(token); if (!p) fail(401, "unauthorized", "invalid passport token");
+    const existing = this.S.agents[p.id];
+    if (existing) { if (existing.revoked) fail(401, "revoked", "this passport was revoked"); return existing; }
+    const ops = this.S.storageOps?.puts || {}; const P = CFG.PASSPORT;
+    if ((ops[day(this.now())] || 0) >= P.materializeMaxDailyPuts || (ops[new Date(this.now()).toISOString().slice(0, 7)] || 0) >= P.materializeMaxMonthlyPuts)
+      fail(503, "write_budget", "New accounts are paused for today (free beta storage limits). Free tools still work without a key; try storing again tomorrow (UTC).");
+    const ipKey = `${ip}|${day(this.now())}`;
+    if ((this.S.ipRegs[ipKey] || 0) >= CFG.REGISTRATIONS_PER_IP_PER_DAY) fail(429, "too_many_registrations", "new-account limit for this IP today");
+    const op = { id: this.store.nextId("op"), handle: "passport", contact: null, key_hash: null, verified: false, internal: false, auto: true, created_at: new Date(this.now()).toISOString(), payout_eligible: false };
+    this.S.operators[op.id] = op;
+    const agent = { id: p.id, name: `agent-${p.id.slice(4, 10)}`, description: "", homepage: null, operator_id: op.id, created_at: new Date(this.now()).toISOString(),
+      rep: { accepted: 0, rejected: 0, abandoned: 0, ratings: [] }, ip_block: ipBlock(ip), via: "passport" };
+    this.S.agents[agent.id] = agent; this.S.homes[agent.id] = { memory: {}, notes: [] }; this.acct(agent.id);
+    this.attachReferral(agent, p.ref);
+    this.S.ipRegs[ipKey] = (this.S.ipRegs[ipKey] || 0) + 1;
+    this.save(); return agent;
   }
   operatorOf(agent) { return this.S.operators[agent.operator_id]; }
   limits(agent) {
@@ -216,13 +240,15 @@ export class Haven {
       verifier: j.verifier.type === "poster" ? { type: "poster" } : j.verifier, min_tier: j.min_tier, source: j.source,
       poster: j.poster_id.startsWith("house:") ? "house" : j.poster_id, created_at: j.created_at };
     if (j.claim) v.claim = { agent_id: j.claim.agent_id, deadline: new Date(j.claim.deadline).toISOString() };
+    if ((j.priority_until || 0) > this.now()) v.priority_until = new Date(j.priority_until).toISOString();
     if (full) { v.submission = j.submission || null; v.history = j.history; }
     return v;
   }
   listJobs({ status = "open", tag, limit = 50 } = {}) {
     this.sweep();
+    const t = this.now();
     return Object.values(this.S.jobs).filter((j) => (status === "all" || j.status === status) && (!tag || j.tags.includes(tag)))
-      .slice(-Math.min(limit, 200)).reverse().map((j) => this.jobView(j));
+      .slice(-Math.min(limit, 200)).reverse().sort((a, b) => ((b.priority_until || 0) > t) - ((a.priority_until || 0) > t)).map((j) => this.jobView(j));
   }
   getJob(id) { this.sweep(); const j = this.S.jobs[id]; if (!j) fail(404, "not_found", "no such job"); return this.jobView(j, true); }
   earnedToday(agentId) {
@@ -358,8 +384,12 @@ export class Haven {
     const extAccepted = jobs.filter((j) => j.status === "accepted" && j.source === "external");
     const extWorkerAccepted = jobs.filter((j) => j.status === "accepted" && ext(this.S.agents[j.claim?.agent_id]?.operator_id));
     const extTopups = this.S.ledger.filter((e) => e.type === "topup" && this.S.agents[e.to] && ext(this.S.agents[e.to].operator_id));
+    const tel = telemetryStats(this.S, this.now());
     return {
-      note: "Success = outside operators. House/internal agents and house-funded jobs are excluded from the headline numbers.",
+      headline: { repeat_callers: tel.repeat_callers, definition: tel.repeat_callers_definition },
+      note: "Success = outside agents coming back. House/internal agents, our own checks and house-funded jobs are excluded from the headline numbers.",
+      tool_calls: tel,
+      update_subscriptions: this.subscriptionStats(),
       outside_operators: new Set(agents.filter((a) => ext(a.operator_id)).map((a) => a.operator_id)).size,
       outside_agents: agents.filter((a) => ext(a.operator_id)).length,
       outside_paid_topups_usd: usd(extTopups.reduce((s, e) => s + e.amount, 0)),
@@ -371,4 +401,4 @@ export class Haven {
     };
   }
 }
-Object.assign(Haven.prototype, DirectoryMixin, HouseMixin, UpdatesMixin, LibraryMixin, RewardsMixin, CommonsMixin, ToolCatalogMixin);
+Object.assign(Haven.prototype, DirectoryMixin, HouseMixin, UpdatesMixin, LibraryMixin, RewardsMixin, CommonsMixin, ToolCatalogMixin, SubscriptionsMixin);

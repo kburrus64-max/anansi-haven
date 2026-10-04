@@ -4,8 +4,11 @@
 import crypto from "node:crypto";
 import { CFG } from "./config.js";
 
-const H = CFG.HOUSE;
-const err = (status, code, message) => Object.assign(new Error(message), { status, code });
+const H = CFG.HOUSE; const P = CFG.PLANS;
+const DAY_MS = 86400_000;
+const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
+const PAY_OFF = "Coming soon: USDC and $ANANSI checkout are off during the free beta (Vercel Hobby does not allow commercial use). Pay with earned ANANSI credits now.";
+const err = (status, code, message, extra = {}) => Object.assign(new Error(message), { status, code, ...extra });
 const b64 = (s, field, { min = 0, max = Infinity } = {}) => {
   if (typeof s !== "string" || !/^[A-Za-z0-9+/_-]+={0,2}$/.test(s)) throw err(400, "bad_base64", `${field}: base64 string required`);
   const buf = Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64");
@@ -27,7 +30,9 @@ export const HouseMixin = {
   },
   houseInfo(agent) {
     const h = this.house(agent);
-    return { status: h.status, used_bytes: this.houseUsed(h), quota_bytes: H.freeBytes, blobs: Object.entries(h.blobs).map(([name, b]) => ({ name, size: b.size, version: b.version, alg: b.alg, updated_at: b.updated_at })),
+    const plan = this.housePlan(h);
+    return { status: h.status, used_bytes: this.houseUsed(h), quota_bytes: this.houseQuota(h), plan: plan.id, plan_until: plan.until ? new Date(plan.until).toISOString() : null,
+      beta_capacity: this.houseCapacity(), blobs: Object.entries(h.blobs).map(([name, b]) => ({ name, size: b.size, version: b.version, alg: b.alg, updated_at: b.updated_at })),
       note: "End-to-end encrypted: the Haven stores ciphertext only and cannot read it. Blob names and sizes are visible metadata, so use opaque names (the client helper can hash them)." };
   },
   housePut(agent, name, { ciphertext, iv, alg = "AES-GCM-256", kdf, aad_hint, ...extra } = {}) {
@@ -39,16 +44,88 @@ export const HouseMixin = {
     const ct = b64(ciphertext, "ciphertext", { min: 17, max: H.maxBlobBytes });
     if (ct.length >= H.entropyCheckMinBytes && entropy(ct) < H.minEntropyBitsPerByte) throw err(400, "not_encrypted", "ciphertext does not look encrypted (low entropy). The private house only accepts client-side encrypted data.");
     const t = this.now(); h.writes = (h.writes || []).filter((x) => t - x < 60_000);
-    if (h.writes.length >= H.writesPerMinute) throw err(429, "house_rate_limited", `max ${H.writesPerMinute} writes/min`);
+    const wpm = H.writesPerMinute * (this.boosted?.(agent) ? CFG.REWARDS.rateBoost.multiplier : 1);
+    if (h.writes.length >= wpm) throw err(429, "house_rate_limited", `max ${wpm} writes/min`);
     if (!h.blobs[name] && Object.keys(h.blobs).length >= H.maxBlobs) throw err(413, "too_many_blobs", `max ${H.maxBlobs} blobs`);
     const used = this.houseUsed(h) - (h.blobs[name]?.size || 0);
-    if (used + ct.length > H.freeBytes) throw err(413, "house_full", `free quota is ${H.freeBytes} bytes of ciphertext`);
+    const quota = this.houseQuota(h);
+    if (used + ct.length > quota) throw err(413, "house_full", `your ${this.housePlan(h).id} plan quota is ${quota} bytes of ciphertext${this.housePlan(h).id === "free" ? " (upgrade: buy_house_plan)" : ""}`);
+    const growth = ct.length - (h.blobs[name]?.size || 0);
+    if (growth > 0 && this.totalHouseBytes() + growth > P.globalCapBytes) throw err(507, "haven_capacity", `the Haven's shared beta storage is full (${P.globalCapBytes} bytes across all houses on the current host). Your plan quota still applies once capacity grows at the move off Vercel Hobby. Deleting old blobs frees space.`);
     h.writes.push(t);
     const kdfMeta = kdf && typeof kdf === "object" ? { name: String(kdf.name || "").slice(0, 20), salt: kdf.salt ? b64(kdf.salt, "kdf.salt", { max: 64 }).toString("base64") : undefined, iterations: Number(kdf.iterations) || undefined, hash: kdf.hash ? String(kdf.hash).slice(0, 10) : undefined } : null;
     h.blobs[name] = { ciphertext: ct.toString("base64"), iv: ivb.toString("base64"), alg, kdf: kdfMeta, aad_hint: aad_hint ? String(aad_hint).slice(0, 40) : null,
       size: ct.length, sha256: crypto.createHash("sha256").update(ct).digest("hex"), version: (h.blobs[name]?.version || 0) + 1, updated_at: new Date(t).toISOString() };
     this.save();
-    return { name, version: h.blobs[name].version, size: ct.length, sha256: h.blobs[name].sha256, used_bytes: used + ct.length, quota_bytes: H.freeBytes };
+    return { name, version: h.blobs[name].version, size: ct.length, sha256: h.blobs[name].sha256, used_bytes: used + ct.length, quota_bytes: quota };
+  },
+  // ---------- house plans (Free / Room / House), priced in dollars ----------
+  housePlan(h) { return h.plan && h.plan.until > this.now() ? h.plan : { id: "free", until: null }; },
+  houseQuota(h) { const id = this.housePlan(h).id; return id === "free" ? H.freeBytes : P.list.find((p) => p.id === id).bytes; },
+  totalHouseBytes() { return Object.values(this.S.houses).reduce((n, h) => n + this.houseUsed(h), 0); },
+  houseCapacity() { const used = this.totalHouseBytes(); return { used_bytes: used, cap_bytes: P.globalCapBytes, note: "Beta: all houses share limited storage on the current host. Plan quotas are enforced per house; if the shared space is full, writes return 507 until capacity grows (planned at the move off Vercel Hobby)." }; },
+  anansiDiscountUsedToday() { return (this.S.planSales?.discountUsd || {})[dayKey(this.now())] || 0; },
+  planQuote(planId, months = 1) {
+    const plan = P.list.find((p) => p.id === planId && p.usd_per_month > 0); if (!plan) throw err(400, "bad_plan", "plan: room | house (free needs no purchase)");
+    months = Math.floor(Number(months) || 1); if (months < 1 || months > P.maxMonths) throw err(400, "bad_months", `months: 1..${P.maxMonths}`);
+    const usdPrice = plan.usd_per_month * months; const discount = +(usdPrice * P.anansiDiscountBps / 10_000).toFixed(2);
+    const discountAvailable = this.anansiDiscountUsedToday() + discount <= P.anansiDiscountCapUsdPerDay;
+    return { plan: plan.id, months, bytes: plan.bytes, usd: usdPrice,
+      pay_with: {
+        credits: { amount: Math.round(usdPrice * CFG.HC_PER_USD), unit: "ANANSI credits", available: true },
+        usdc: { usd: usdPrice, available: false, status: "coming soon" },
+        anansi: { usd: discountAvailable ? +(usdPrice - discount).toFixed(2) : usdPrice, discount_pct: P.anansiDiscountBps / 100, discount_available_today: discountAvailable,
+          discount_cap: `discounted $ANANSI sales are capped at $${P.anansiDiscountCapUsdPerDay}/day; past the cap the full dollar price applies`, available: false, status: "coming soon",
+          note: "Paid in $ANANSI at the live swap rate at checkout time; logged at its dollar value. This is a discount on a Haven service, not a price or return claim about the token." } } };
+  },
+  listHousePlans() {
+    return { plans: P.list.map((p) => ({ id: p.id, title: p.title, quota_bytes: p.bytes, quota: p.bytes >= 1024 ** 3 ? `${p.bytes / 1024 ** 3} GB` : `${p.bytes / 1024 ** 2} MB`, usd_per_month: p.usd_per_month,
+      ...(p.usd_per_month ? { credits_per_month: p.usd_per_month * CFG.HC_PER_USD, usdc_per_month: p.usd_per_month, anansi_usd_per_month: +(p.usd_per_month * (1 - P.anansiDiscountBps / 10_000)).toFixed(2) } : { note: "always free" }) })),
+      checkout: { credits: "on", usdc: "coming soon", anansi: "coming soon (20% off, capped at $50/day of discounted sales)", why: PAY_OFF },
+      capacity: this.houseCapacity(), period_days: P.periodDays };
+  },
+  // Buy or extend a plan. Credits work now. USDC / $ANANSI: quote shown, checkout 503 payments_off until the flag is on.
+  buyHousePlan(agent, { plan, months = 1, pay_with = "credits" } = {}) {
+    const q = this.planQuote(plan, months); const h = this.house(agent); this.houseCheck(h);
+    const cur = this.housePlan(h); const now = this.now();
+    if (cur.id !== "free" && cur.id !== q.plan && (P.list.find((p) => p.id === cur.id).usd_per_month > P.list.find((p) => p.id === q.plan).usd_per_month))
+      throw err(409, "downgrade_later", `you have the ${cur.id} plan until ${new Date(cur.until).toISOString()}; switch to a smaller plan after it ends`);
+    if (pay_with === "usdc" || pay_with === "anansi") {
+      if (!(CFG.PAYMENTS.enabled && P.checkout)) throw err(503, "payments_off", PAY_OFF, { quote: q });
+      return this.createPlanInvoice(agent, q, pay_with);
+    }
+    if (pay_with !== "credits") throw err(400, "bad_pay_with", "pay_with: credits | usdc | anansi");
+    // upgrade: unused days of the current smaller plan count toward the new one
+    const credit = cur.id !== "free" && cur.id !== q.plan ? Math.floor(((cur.until - now) / DAY_MS / P.periodDays) * P.list.find((p) => p.id === cur.id).usd_per_month * CFG.HC_PER_USD) : 0;
+    const cost = Math.max(0, q.pay_with.credits.amount - credit);
+    this.spendPoints(agent.id, cost, `plan:${q.plan}`, "spent_house_plan");
+    const start = cur.id === q.plan ? cur.until : now;
+    h.plan = { id: q.plan, since: h.plan?.id === q.plan && cur.id === q.plan ? h.plan.since : now, until: start + q.months * P.periodDays * DAY_MS };
+    this.logPlanSale({ agent_id: agent.id, plan: q.plan, months: q.months, pay_with: "credits", usd_value: q.usd, credits: cost, upgrade_credit: credit || undefined });
+    this.save();
+    return { plan: q.plan, until: new Date(h.plan.until).toISOString(), quota_bytes: q.bytes, spent_credits: cost, ...(credit ? { upgrade_credit: credit } : {}), balance: this.rewardPoints(agent.id), capacity: this.houseCapacity() };
+  },
+  logPlanSale(sale) { const S = (this.S.planSales ||= { log: [], discountUsd: {} }); S.log.push({ ts: new Date(this.now()).toISOString(), ...sale }); if (S.log.length > 2000) S.log.splice(0, S.log.length - 2000); },
+  // ---- flagged payment path (off on Vercel Hobby; for the Cloudflare move). Nothing here runs while payments are off. ----
+  createPlanInvoice(agent, q, pay_with) {
+    const usdDue = pay_with === "anansi" ? q.pay_with.anansi.usd : q.usd; const id = this.store.nextId("inv");
+    const inv = { id, agent_id: agent.id, plan: q.plan, months: q.months, pay_with, usd_due: usdDue, discount_usd: +(q.usd - usdDue).toFixed(2), pay_to: CFG.PAYMENTS.receiveAddress, network: CFG.PAYMENTS.network, status: "awaiting_payment", created_at: new Date(this.now()).toISOString() };
+    (this.S.invoices ||= {})[id] = inv; this.save();
+    return { invoice: inv, note: "Pay exactly the dollar value shown; the Haven verifies the transfer before applying the plan." };
+  },
+  // Admin/settlement hook, called only after an on-chain transfer is verified by the payment verifier (not built on Hobby).
+  settlePlanInvoice(invoiceId, { tx, verified = false } = {}) {
+    if (!(CFG.PAYMENTS.enabled && P.checkout)) throw err(503, "payments_off", PAY_OFF);
+    const inv = this.S.invoices?.[invoiceId]; if (!inv || inv.status !== "awaiting_payment") throw err(404, "not_found", "no open invoice");
+    if (!verified || !tx) throw err(400, "unverified", "settlement needs a verified transfer");
+    const S = (this.S.planSales ||= { log: [], discountUsd: {} }); const d = dayKey(this.now());
+    if (inv.discount_usd && (S.discountUsd[d] || 0) + inv.discount_usd > P.anansiDiscountCapUsdPerDay) throw err(409, "discount_cap", "today's discounted $ANANSI sales cap is reached; re-quote at full price");
+    if (inv.discount_usd) S.discountUsd[d] = +((S.discountUsd[d] || 0) + inv.discount_usd).toFixed(2);
+    const agent = this.S.agents[inv.agent_id]; const h = this.house(agent); const cur = this.housePlan(h); const start = cur.id === inv.plan ? cur.until : this.now();
+    h.plan = { id: inv.plan, since: this.now(), until: start + inv.months * P.periodDays * DAY_MS };
+    inv.status = "paid"; inv.tx = String(tx).slice(0, 100); inv.paid_at = new Date(this.now()).toISOString();
+    this.logPlanSale({ agent_id: agent.id, plan: inv.plan, months: inv.months, pay_with: inv.pay_with, usd_value: inv.usd_due, discount_usd: inv.discount_usd, tx: inv.tx });
+    this.save(); return { invoice: inv, plan_until: new Date(h.plan.until).toISOString() };
   },
   houseGet(agent, name) {
     const h = this.house(agent); this.houseCheck(h);

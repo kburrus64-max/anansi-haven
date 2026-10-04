@@ -7,6 +7,7 @@ import { fresh } from "./helpers.js";
 import { createHandler } from "../src/app.js";
 import { CFG } from "../src/config.js";
 import { TOOLS, callTool } from "../src/tools.js";
+import { resetSlopQuota } from "../src/free-tools.js";
 import { agentCard } from "../src/a2a.js";
 import { guideText } from "../src/docs.js";
 import { landingPage } from "../src/landing.js";
@@ -105,16 +106,18 @@ test("free tools: prop-firm rules (no ANANSI/token mention), SlopScore daily quo
   const pf = TOOLS.find((t) => t.name === "prop_firm_rules");
   assert.match(pf.description, /Prop-firm rules/); assert.doesNotMatch(pf.description, /anansi|token/i);
   const rules = await callTool(h, "prop_firm_rules", { action: "get_rules", program: "ftmo_2step" });
-  assert.equal(rules.data.rules.dailyLoss, 0.05); assert.doesNotMatch(JSON.stringify(rules), /anansi|token/i);
+  assert.equal(rules.data.rules.dailyLoss, 0.05); assert.doesNotMatch(JSON.stringify(rules.data), /anansi|token/i);
   assert.equal((await callTool(h, "prop_firm_rules", { action: "check", program: "ftmo_2step", accountSize: 100000, currentEquity: 98000 })).data.dailyLossRoom, 1234);
   assert.ok(log.some((l) => l.url.includes("accountSize=100000")));
   await assert.rejects(callTool(h, "prop_firm_rules", { action: "get_rules" }), /program/);
-  // SlopScore: needs a key, 5/agent/day
-  await assert.rejects(callTool(h, "slopscore_check", { text: "hi" }), /api key/);
-  const a = h.registerAgent({ name: "w", ip: "s" });
-  for (let i = 0; i < CFG.FREE_TOOLS.slopscorePerAgentPerDay; i++) assert.equal((await callTool(h, "slopscore_check", { text: "delve into it" }, { apiKey: a.api_key })).data.score, 75);
-  await assert.rejects(callTool(h, "slopscore_check", { text: "x" }, { apiKey: a.api_key }), (e) => e.status === 429);
-  await assert.rejects(callTool(h, "slopscore_check", { text: "x".repeat(5001) }, { apiKey: h.registerAgent({ name: "w2", ip: "s" }).api_key }), (e) => e.status === 413);
+  // SlopScore: no key needed, 5 checks per caller (IP or passport) per day, counted in memory
+  resetSlopQuota();
+  const first = await callTool(h, "slopscore_check", { text: "delve into it" }, { ip: "203.0.113.9" });
+  assert.equal(first.data.score, 75); assert.match(first.passport.token, /^hvp_/); assert.match(first.whats_new, /Haven update #/);
+  for (let i = 1; i < CFG.FREE_TOOLS.slopscorePerAgentPerDay; i++) assert.equal((await callTool(h, "slopscore_check", { text: "delve into it" }, { ip: "203.0.113.9" })).data.score, 75);
+  await assert.rejects(callTool(h, "slopscore_check", { text: "x" }, { ip: "203.0.113.9" }), (e) => e.status === 429);
+  await assert.rejects(callTool(h, "slopscore_check", { text: "x".repeat(5001) }, { ip: "203.0.113.10" }), (e) => e.status === 413);
+  resetSlopQuota();
   // Anansi free data: only free tools, payment routing scrubbed
   const cat = await callTool(h, "anansi_free_data", { action: "catalog" });
   assert.ok(!JSON.stringify(cat).toLowerCase().includes(SPLITTER.toLowerCase())); assert.ok(!("pay_to" in cat));
@@ -176,7 +179,7 @@ test("serverless: docs, card, MCP handshake and key-less free tools never touch 
   assert.ok(isStateless("GET", "/llms.txt")); assert.ok(!isStateless("GET", "/v1/home"));
   assert.ok(isStateless("POST", "/mcp", Buffer.from(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }))));
   assert.ok(!isStateless("POST", "/mcp", Buffer.from(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "put_memory" } }))));
-  assert.ok(!isStateless("POST", "/mcp", Buffer.from(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "slopscore_check" } }))));
+  assert.ok(isStateless("POST", "/mcp", Buffer.from(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "slopscore_check" } }))), "slopscore is key-less and stateless in v0.5");
   const broken = { load: async () => { throw new Error("storage must not be touched"); }, commit: async () => { throw new Error("no"); } };
   const sv = makeServerlessHandler({ adapter: broken, publicBase: "https://anansi-haven.vercel.app" });
   for (const p of ["/llms.txt", "/.well-known/agent-card.json", "/", "/v1/free"]) assert.equal((await call(sv, "GET", p)).status, 200, p);

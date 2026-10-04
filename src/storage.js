@@ -129,7 +129,9 @@ export function adapterFromEnv(env = process.env) {
 
 // Run fn(haven) as one transaction: load, run, commit if anything changed, retry on conflict.
 // fn may be async (outbound fetches are fine; they simply re-run on a conflict).
-export async function withHaven(adapter, fn, { retries = 4, now, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+// beforeCommit(haven) runs only when the request already changed state (so piggybacked data never causes a write);
+// it may return an undo() that is called if the commit fails.
+export async function withHaven(adapter, fn, { retries = 4, now, beforeCommit, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const { state, version } = await adapter.load({ fresh: attempt > 0 });
@@ -141,8 +143,9 @@ export async function withHaven(adapter, fn, { retries = 4, now, sleep = (ms) =>
     const out = await fn(haven);
     const after = JSON.stringify(store.state);
     if (after === before) return out;
+    let undo = null; try { undo = beforeCommit ? beforeCommit(haven) : null; } catch { undo = null; }
     try { await adapter.commit(version, store.state); return out; }
-    catch (e) { if (e.code !== "conflict") throw e; lastErr = e; adapter.invalidate?.(); await sleep(20 + Math.random() * 80 * (attempt + 1)); }
+    catch (e) { try { undo?.(); } catch { /* ignore */ } if (e.code !== "conflict") throw e; lastErr = e; adapter.invalidate?.(); await sleep(20 + Math.random() * 80 * (attempt + 1)); }
   }
   throw Object.assign(lastErr || new ConflictError(), { status: 503, message: "busy: too many concurrent writes, retry shortly" });
 }

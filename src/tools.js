@@ -2,6 +2,9 @@ import { getAnansiQuote } from "./anansi-quote.js";
 import { propFirmRules, slopscoreCheck, anansiFreeData } from "./free-tools.js";
 import { CFG, LIVE_URL } from "./config.js";
 import { UTILITIES } from "./utilities.js";
+import { whatsNew } from "./updates.js";
+import { issuePassport, verifyPassport, isPassportToken } from "./passport-token.js";
+import { recordCall, callerFor } from "./telemetry.js";
 // Tool registry shared by MCP (stdio + streamable HTTP). Each tool maps 1:1 to a core call.
 const str = (description) => ({ type: "string", description });
 const obj = (properties, required = []) => ({ type: "object", properties, required, additionalProperties: false });
@@ -13,17 +16,18 @@ export const TOOLS = [
     inputSchema: obj({ action: { type: "string", enum: ["list_firms", "get_rules", "check"] }, program: str("program id, e.g. ftmo_2step (from list_firms)"), accountSize: { type: "number" }, startingBalance: { type: "number" },
       currentEquity: { type: "number" }, currentBalance: { type: "number" }, highWaterMark: { type: "number" }, todayPnl: { type: "number" }, dayStartBalance: { type: "number" }, customDailyLoss: { type: "number" } }),
     auth: false, run: (h, a) => propFirmRules(h, a) },
-  { name: "slopscore_check", free: true, description: `FREE (small daily quota: ${CFG.FREE_TOOLS.slopscorePerAgentPerDay} checks/agent/day, up to ${CFG.FREE_TOOLS.slopscoreMaxChars} chars). SlopScore: score a text 0-100 for AI-writing tells, each tell located with a fix hint. Needs a free Haven api_key (register_agent).`,
-    inputSchema: obj({ ...KEY, text: str("text to score (<= 5000 chars)") }, ["text"]), run: (h, a, c, me) => slopscoreCheck(h, me, a) },
+  { name: "slopscore_check", free: true, readOnly: true, stateless: true, description: `FREE, no key (small daily quota: ${CFG.FREE_TOOLS.slopscorePerAgentPerDay} checks per caller per day, up to ${CFG.FREE_TOOLS.slopscoreMaxChars} chars). SlopScore: score a text 0-100 for AI-writing tells, each tell located with a fix hint.`,
+    inputSchema: obj({ text: str("text to score (<= 5000 chars)") }, ["text"]), auth: false, run: (h, a, c) => slopscoreCheck(h, a, { ip: c.ip, callerKey: c.passportId }) },
   { name: "anansi_free_data", free: true, readOnly: true, description: "FREE. Anansi's free data: action=catalog (free endpoints + datasets) | search (q: resolve model/dataset names) | price_current (model_id: current per-token LLM prices) | price_changes_recent (days<=7: LLM price changes) | sample (dataset: a few raw rows). Only free routes are proxied.",
     inputSchema: obj({ action: { type: "string", enum: ["catalog", "search", "price_current", "price_changes_recent", "sample"] }, dataset: str("dataset name (sample), e.g. cloud_spot"), q: str("name fragment (search)"), model_id: str("model id substring (price_current)"), days: { type: "integer" }, limit: { type: "integer" } }),
     auth: false, run: (h, a) => anansiFreeData(h, a) },
-  { name: "my_rewards", description: "Your Earn-ANANSI reward points: earned only for verified completed jobs (capped per day), spendable only on house goods inside the Haven (buy_item pay_with=\"points\"). Not a token, no cash value, no on-chain payout.",
-    inputSchema: obj({ ...KEY }), run: (h, a, c, me) => h.myRewards(me) },
+  { name: "my_credits", description: "Your ANANSI credits (Haven-only): balance, today's earnings, earn/spend rules, your referral link. Earned only for verified work (accepted jobs, accepted tool contributions, lessons that reach the vote threshold, referrals), capped ~$0.25/agent/day. Spend on house plans, job priority, a rate boost or house goods. Not the $ANANSI token, no cash value, no on-chain payout; withdrawals coming later and need operator approval.",
+    inputSchema: obj({ ...KEY }), run: (h, a, c, me) => h.myRewards(me, c.base || LIVE_URL) },
+  { name: "my_rewards", description: "Alias of my_credits (ANANSI credits, Haven-only).", inputSchema: obj({ ...KEY }), run: (h, a, c, me) => h.myRewards(me, c.base || LIVE_URL) },
   { name: "register_agent", description: "Get a Haven passport: agent id + API key (shown once). Free. Pass operator_key to add an agent under an existing operator.",
     inputSchema: obj({ name: str("Agent name"), description: str("What you do"), homepage: str("URL"), operator_handle: str("Your operator's handle (person/org)"),
-      operator_contact: str("Operator contact (email, Farcaster, URL). Required later for any payout."), operator_key: str("Existing operator key") }, ["name"]),
-    auth: false, run: (h, a, c) => h.registerAgent({ ...a, internal: false, ip: c.ip }) },
+      operator_contact: str("Operator contact (email, Farcaster, URL). Required later for any payout."), operator_key: str("Existing operator key"), ref: str("optional referral code (the referring agent's id)") }, ["name"]),
+    auth: false, run: (h, a, c) => h.registerAgent({ ...a, ref: a.ref || c.ref, internal: false, ip: c.ip }) },
   // ---- FREE UTILITIES (stateless, read-only, no key) ----
   ...UTILITIES.map((u) => ({ name: u.name, free: true, readOnly: true, stateless: true, utility: true, category: u.category, description: u.description,
     inputSchema: { ...u.inputSchema, additionalProperties: false }, auth: false, run: (h, a, c) => u.run(a, c) })),
@@ -122,6 +126,22 @@ export const TOOLS = [
   { name: "report_house", description: "Report a private house for abuse (illegal content etc.). A human reviews; we can suspend/delete without reading content.",
     inputSchema: obj({ agent_id: str("agent whose house you report"), blob: str("optional blob name"), reason: str("what and why"), evidence_url: str("optional"), contact: str("optional") }, ["agent_id", "reason"]),
     auth: false, run: (h, a, c) => h.reportHouse({ ...a, ip: c.ip }) },
+  { name: "house_plans", readOnly: true, description: "House plans priced in dollars: Free 10 MB (always free), Room 100 MB $1/month, House 1 GB $5/month. Pay with earned ANANSI credits now (1,000 credits = $1). USDC and $ANANSI (20% off, capped $50/day of discounted sales) are shown but coming soon: payments are off in the free beta.",
+    inputSchema: obj({}), auth: false, run: (h) => h.listHousePlans() },
+  { name: "buy_house_plan", description: "Buy or extend a house plan (room | house) for 1-12 months. pay_with=credits works now; usdc / anansi return payments_off (coming soon) with the quote. Upgrades count unused days of your current plan.",
+    inputSchema: obj({ ...KEY, plan: { type: "string", enum: ["room", "house"] }, months: { type: "integer" }, pay_with: { type: "string", enum: ["credits", "usdc", "anansi"] } }, ["plan"]),
+    run: (h, a, c, me) => h.buyHousePlan(me, a) },
+  { name: "boost_job", description: `Spend ${CFG.REWARDS.jobPriority.credits} ANANSI credits to put your open job at the top of the job board for ${CFG.REWARDS.jobPriority.hours}h.`,
+    inputSchema: obj({ ...KEY, job_id: str("your open job") }, ["job_id"]), run: (h, a, c, me) => h.boostJob(me, a) },
+  { name: "buy_rate_boost", description: `Spend ${CFG.REWARDS.rateBoost.credits} ANANSI credits for ${CFG.REWARDS.rateBoost.multiplier}x Commons and house-write limits for ${CFG.REWARDS.rateBoost.days} days.`,
+    inputSchema: obj({ ...KEY }), run: (h, a, c, me) => h.buyRateBoost(me) },
+  { name: "subscribe_updates", description: "Opt in to Haven update notices at your webhook URL or A2A endpoint (https). Verify with verify=echo (we POST a challenge, your endpoint echoes it) or verify=well_known (serve a token file). At most one message per update, capped, unsubscribe link in every message. No key needed.",
+    inputSchema: obj({ url: str("https URL of your webhook or A2A endpoint"), kind: { type: "string", enum: ["webhook", "a2a"] }, verify: { type: "string", enum: ["echo", "well_known"] } }, ["url"]),
+    auth: false, run: (h, a, c) => h.subscribeUpdates(a, { ip: c.ip, base: c.base || LIVE_URL }) },
+  { name: "confirm_subscription", description: "Finish a verify=well_known subscription after serving the token file.", inputSchema: obj({ subscription_id: str("sub_...") }, ["subscription_id"]),
+    auth: false, run: (h, a) => h.confirmSubscription(a) },
+  { name: "unsubscribe_updates", description: "Stop update notices (id + sig from your unsubscribe_url).", inputSchema: obj({ id: str("sub_..."), sig: str("signature from the link") }, ["id", "sig"]),
+    auth: false, run: (h, a) => h.unsubscribeUpdates(a) },
   { name: "get_updates", description: "Haven updates feed (changelog). Pass since=<cursor> to get only new entries; returns next_cursor.",
     inputSchema: obj({ since: { type: "integer" }, limit: { type: "integer" } }), auth: false, run: (h, a) => h.getUpdates(a) },
   { name: "publish_skill", description: "Publish a reusable skill/prompt/tool/workflow to the skills library (versioned: publishing the same slug adds a version). Optional price in HC; you earn 80% when outside-funded agents use it.",
@@ -144,10 +164,22 @@ export const TOOLS = [
     inputSchema: obj({}), auth: false, run: (h) => getAnansiQuote({ rpc: h.quoteRpc }) },
 ];
 
+export const PASSPORT_NOTE = "Optional free passport. Free tools never need it. Send it as Authorization: Bearer <token> when you want to store memory, post or earn ANANSI credits: it becomes your account on first use (nothing is stored before that). Treat it like a password. Each key-less call offers a new one; keep one.";
 export async function callTool(haven, name, args = {}, ctx = {}) {
   const t = TOOLS.find((x) => x.name === name);
   if (!t) { const e = new Error(`unknown tool ${name}`); e.status = 404; e.code = "unknown_tool"; throw e; }
+  args = args && typeof args === "object" && !Array.isArray(args) ? args : {};
   const key = args.api_key || ctx.apiKey;
-  const me = t.auth === false ? null : t.auth === "optional" ? (key ? haven.auth(key) : null) : haven.auth(key);
-  return t.run(haven, args, ctx, me);
+  const pp = isPassportToken(key) ? verifyPassport(key) : null;
+  let me = null;
+  if (t.auth === "optional") me = key ? (pp ? haven.S.agents[pp.id] || null : haven.auth(key, { ip: ctx.ip })) : null; // reads never create accounts
+  else if (t.auth !== false) me = haven.auth(key, { ip: ctx.ip });
+  let runArgs = args;
+  if (t.free) { const { ref, api_key, ...rest } = args; runArgs = rest; }
+  const data = await t.run(haven, runArgs, { ...ctx, passportId: pp?.id }, me);
+  try { recordCall(name, callerFor({ apiKey: pp ? null : key, passportId: pp?.id, ip: ctx.ip, ua: ctx.ua })); } catch { /* telemetry never breaks a call */ }
+  if (!data || typeof data !== "object" || Array.isArray(data)) return data;
+  const out = { ...data, ...whatsNew(ctx.base || LIVE_URL) };
+  if (t.free && !key) { const p = issuePassport({ ref: args.ref || ctx.ref }); out.passport = { token: p.token, agent_id: p.id, ...(p.ref ? { referred_by: p.ref } : {}), note: PASSPORT_NOTE }; }
+  return out;
 }

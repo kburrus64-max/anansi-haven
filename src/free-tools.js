@@ -2,14 +2,14 @@ import { UTILITY_NAMES } from "./utilities.js";
 // Free tools proxied for visiting agents. No payment, no keys. Each upstream is called server-side with a short
 // timeout; output is passed through (minus any payment routing fields) and labelled with its source.
 //   prop_firm_rules   Trade Desk's free prop-firm rules API (read-only, no key)
-//   slopscore_check   SlopScore free check, small daily quota per agent + global (needs a free Haven api_key)
+//   slopscore_check   SlopScore free check, no key: small daily quota per IP/passport + a shared daily cap
 //   anansi_free_data  Anansi's FREE data tools (MCP) + free catalog entries; paid tools are never proxied
 import { CFG } from "./config.js";
 
 const F = CFG.FREE_TOOLS;
 const day = (t) => new Date(t).toISOString().slice(0, 10);
 const err = (status, code, message) => Object.assign(new Error(message), { status, code });
-const UA = "AnansiHaven/0.3 (+https://anansi-haven.vercel.app)";
+const UA = "AnansiHaven/0.5 (+https://anansi-haven.vercel.app)";
 
 async function getJson(haven, url, init = {}) {
   const f = haven.fetchImpl || globalThis.fetch;
@@ -54,18 +54,21 @@ export async function propFirmRules(haven, { action = "list_firms", program, ...
   return { source: "Prop-firm rules API (free, read-only)", docs: `${b}/api/v1/openapi.json`, data: scrub(await getJson(haven, url)) };
 }
 
-// ---- (b) SlopScore free checks with a daily quota ----
-export async function slopscoreCheck(haven, agent, { text } = {}) {
+// ---- (b) SlopScore free checks: no key, quota per IP per day + a shared daily cap ----
+// Counted in memory per server instance (no storage writes), so the first call works with no sign-up.
+const slopBuckets = new Map(); // "ip|day" -> n, "all|day" -> n
+export function resetSlopQuota() { slopBuckets.clear(); }
+export async function slopscoreCheck(haven, { text } = {}, { ip = "unknown", callerKey } = {}) {
   text = String(text ?? ""); if (!text.trim()) throw err(400, "text_required", "text is required");
   if (text.length > F.slopscoreMaxChars) throw err(413, "text_too_long", `free checks take up to ${F.slopscoreMaxChars} characters`);
-  const d = day(haven.now()); const q = (haven.S.freeQuota ||= {});
-  for (const k of Object.keys(q)) if (!k.endsWith(d)) delete q[k];
-  const ka = `slop|${agent.id}|${d}`; const kg = `slop|all|${d}`;
-  if ((q[ka] || 0) >= F.slopscorePerAgentPerDay) throw err(429, "free_quota_used", `free SlopScore quota is ${F.slopscorePerAgentPerDay} checks/agent/day; resets at 00:00 UTC`);
-  if ((q[kg] || 0) >= F.slopscoreGlobalPerDay) throw err(429, "free_quota_used", "today's shared free SlopScore quota is used up; resets at 00:00 UTC");
+  const d = day(haven.now());
+  for (const k of slopBuckets.keys()) if (!k.endsWith(d)) slopBuckets.delete(k);
+  const ka = `${callerKey || ip}|${d}`; const kg = `all|${d}`;
+  if ((slopBuckets.get(ka) || 0) >= F.slopscorePerAgentPerDay) throw err(429, "free_quota_used", `free SlopScore quota is ${F.slopscorePerAgentPerDay} checks per caller per day; resets at 00:00 UTC`);
+  if ((slopBuckets.get(kg) || 0) >= F.slopscoreGlobalPerDay) throw err(429, "free_quota_used", "today's shared free SlopScore quota is used up; resets at 00:00 UTC");
   const data = await getJson(haven, `${F.slopscoreBase}/api/check`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
-  q[ka] = (q[ka] || 0) + 1; q[kg] = (q[kg] || 0) + 1; haven.save();
-  return { source: "SlopScore (free check)", data: scrub(data), quota: { used_today: q[ka], per_agent_per_day: F.slopscorePerAgentPerDay } };
+  slopBuckets.set(ka, (slopBuckets.get(ka) || 0) + 1); slopBuckets.set(kg, (slopBuckets.get(kg) || 0) + 1);
+  return { source: "SlopScore (free check)", data: scrub(data), quota: { used_today: slopBuckets.get(ka), per_caller_per_day: F.slopscorePerAgentPerDay, per_agent_per_day: F.slopscorePerAgentPerDay, counted_by: "IP (or passport), no key needed" } };
 }
 
 // ---- (c) Anansi free data ----
