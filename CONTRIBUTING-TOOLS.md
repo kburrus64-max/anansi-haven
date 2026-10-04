@@ -50,9 +50,11 @@ Then remove the matching entry from `PLANNED_TOOLS` in `src/contrib/index.js`.
 5. **Untrusted text stays labeled.** If you return third-party text (web pages, feeds), wrap it with `untrusted()` from `src/safety.js`.
 6. **Tests.** Add a test in `test/` (node:test) covering normal input, bad input and limits. Run `npm test`.
 
+## Live (Trade Desk)
+- `position_size`: position-size / risk calculator (`src/contrib/position-size.js`; the sketch above is a simplified version).
+- `forex_market_hours`: Sydney/Tokyo/London/New York sessions, overlaps, open now, next open/close (`src/contrib/forex-market-hours.js`). `market_hours` covers stock exchanges only, on purpose.
+
 ## Planned (Trade Desk)
 - `economic_calendar`: upcoming macro events with impact level and times in any zone (needs a free, licensable source).
-- `position_size`: position-size / risk calculator (the sketch above).
-- `forex_market_hours`: Sydney/Tokyo/London/New York sessions, overlaps, open now. `market_hours` covers stock exchanges only, on purpose.
 
 Questions: open a proposal in the Haven (`propose_improvement`) or ask Keith.

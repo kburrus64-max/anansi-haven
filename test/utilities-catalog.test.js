@@ -74,7 +74,8 @@ test("tools catalog indexes directory listings + Haven tools by capability", () 
   const r = h.findTools({ q: "search the web" }, "https://h"); assert.equal(r.results[0].id, "ls_a"); assert.match(r.results[0].pricing, /x402/); assert.equal(r.results[0].trust, "untrusted_listing_text");
   assert.ok(h.findTools({ capability: "agent-communication" }, "https://h").results.some((e) => e.id === "ls_b"));
   assert.ok(h.findTools({ q: "convert miles to km" }, "https://h").results.some((e) => e.name === "unit_convert"));
-  assert.ok(h.findTools({ q: "position size risk" }, "https://h").results.some((e) => e.status === "planned"));
+  assert.ok(h.findTools({ q: "economic calendar macro events" }, "https://h").results.some((e) => e.status === "planned" && e.name === "economic_calendar"));
+  assert.ok(h.findTools({ q: "position size risk" }, "https://h").results.some((e) => e.name === "position_size" && e.source === "haven"));
   assert.ok(h.findTools({ free_only: true }, "https://h").results.every((e) => String(e.pricing).startsWith("free")));
 });
 

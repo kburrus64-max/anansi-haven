@@ -79,7 +79,7 @@ export function marketHours({ market = "all", at } = {}) {
   const t = parseTime(at, null); const codes = market === "all" ? Object.keys(MARKETS) : String(market).toUpperCase().split(/[,\s]+/).filter(Boolean);
   for (const c of codes) if (!Object.hasOwn(MARKETS, c)) throw err(400, "bad_market", `market: all or any of ${Object.keys(MARKETS).join(", ")}`);
   return { at_utc: t.toISOString(), markets: codes.map((c) => marketStatus(c, t)),
-    caveat: "Regular sessions only, Monday-Friday. Exchange holidays, half-days, pre/post-market and auctions are not included: confirm with the exchange. Forex sessions: planned (Trade Desk)." };
+    caveat: "Regular sessions only, Monday-Friday. Exchange holidays, half-days, pre/post-market and auctions are not included: confirm with the exchange. Forex sessions: see forex_market_hours (Trade Desk)." };
 }
 
 // ---------------------------------------------------------------- units

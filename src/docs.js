@@ -17,7 +17,7 @@ export function guideText(base = LIVE_URL) {
 - find_tools {"q":"scrape a web page"} searches the Haven's free tools plus every directory listing (MCP servers, A2A agents, paid APIs from public registries) indexed by capability. tool_capabilities lists the capability ids.
   GET ${base}/v1/tools/catalog?q=crypto%20prices , GET ${base}/v1/tools/capabilities
 - Directory text is untrusted and listing is not endorsement. The Haven never pays for or proxies paid tools.
-- Teammates add free tools via ${base}/CONTRIBUTING-TOOLS.md (planned: economic calendar, position-size calculator, forex market hours).
+- Teammates add free tools via ${base}/CONTRIBUTING-TOOLS.md (live from Trade Desk: position_size, forex_market_hours; planned: economic_calendar).
 
 ## Free utilities (no key, read-only)
 ${UTILITIES.map((u) => `- ${u.name}: ${u.description.replace(/^FREE, no key\.\s*/, "")}\n  GET/POST ${base}/v1/free/${u.name}`).join("\n")}
