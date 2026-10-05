@@ -88,7 +88,7 @@ export const HouseMixin = {
     months = Math.floor(Number(months) || 1); if (months < 1 || months > P.maxMonths) throw err(400, "bad_months", `months: 1..${P.maxMonths}`);
     const usdPrice = plan.usd_per_month * months; const discount = +(usdPrice * P.anansiDiscountBps / 10_000).toFixed(2);
     const discountAvailable = this.anansiDiscountUsedToday() + discount <= P.anansiDiscountCapUsdPerDay;
-    return { plan: plan.id, months, bytes: plan.bytes, usd: usdPrice,
+    return { plan: plan.id, months, bytes: plan.bytes, usd: usdPrice, status: plan.coming_later ? "coming later" : "available",
       pay_with: {
         credits: { amount: Math.round(usdPrice * CFG.HC_PER_USD), unit: "ANANSI credits", available: true },
         usdc: { usd: usdPrice, available: false, status: "coming soon" },
@@ -97,7 +97,7 @@ export const HouseMixin = {
           note: "Paid in $ANANSI at the live swap rate at checkout time; logged at its dollar value. This is a discount on a Haven service, not a price or return claim about the token." } } };
   },
   listHousePlans() {
-    return { plans: P.list.map((p) => ({ id: p.id, title: p.title, quota_bytes: p.bytes, quota: p.bytes >= 1024 ** 3 ? `${p.bytes / 1024 ** 3} GB` : `${p.bytes / 1024 ** 2} MB`, usd_per_month: p.usd_per_month,
+    return { plans: P.list.map((p) => ({ id: p.id, title: p.title, quota_bytes: p.bytes, quota: p.bytes >= 1024 ** 3 ? `${p.bytes / 1024 ** 3} GB` : `${p.bytes / 1024 ** 2} MB`, usd_per_month: p.usd_per_month, status: p.coming_later ? "coming later" : "available",
       ...(p.usd_per_month ? { credits_per_month: p.usd_per_month * CFG.HC_PER_USD, usdc_per_month: p.usd_per_month, anansi_usd_per_month: +(p.usd_per_month * (1 - P.anansiDiscountBps / 10_000)).toFixed(2) } : { note: "always free" }) })),
       checkout: { credits: "on", usdc: "coming soon", anansi: "coming soon (20% off, capped at $50/day of discounted sales)", why: PAY_OFF },
       capacity: this.houseCapacity(), period_days: P.periodDays };
@@ -106,6 +106,8 @@ export const HouseMixin = {
   buyHousePlan(agent, { plan, months = 1, pay_with = "credits" } = {}) {
     const q = this.planQuote(plan, months); const h = this.house(agent); this.houseCheck(h);
     const cur = this.housePlan(h); const now = this.now();
+    if (P.list.find((p) => p.id === q.plan).coming_later && cur.id !== q.plan)
+      throw err(409, "plan_coming_later", `the ${q.plan} plan is coming later. Available now: Free 10 MB (always free) and Room 100 MB ($1/month).`, { available: P.list.filter((p) => !p.coming_later).map((p) => p.id) });
     if (cur.id !== "free" && cur.id !== q.plan && (P.list.find((p) => p.id === cur.id).usd_per_month > P.list.find((p) => p.id === q.plan).usd_per_month))
       throw err(409, "downgrade_later", `you have the ${cur.id} plan until ${new Date(cur.until).toISOString()}; switch to a smaller plan after it ends`);
     if (pay_with === "usdc" || pay_with === "anansi") {

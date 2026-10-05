@@ -62,13 +62,14 @@ test("plans: real quotas, and new paid-plan space stops being sold before the to
     const mkAgent = (n, ip) => { const r = h.registerAgent({ name: n, ip }); const me = h.auth(r.api_key); h.rewardsState().balances[me.id] = 100_000; return me; };
     const a = mkAgent("a", "198.51.100.1"); const b = mkAgent("b", "198.51.100.2");
     const saved = CFG.PLANS.upgradeCapBytes; CFG.PLANS.upgradeCapBytes = 1.5 * 1024 ** 3;
+    const houseP = CFG.PLANS.list.find((p) => p.id === "house"); const savedCL = houseP.coming_later; houseP.coming_later = false;
     try {
       h.buyHousePlan(a, { plan: "house" }); assert.equal(h.houseInfo(a).quota_bytes, 1024 ** 3);
       assert.throws(() => h.buyHousePlan(b, { plan: "house" }), (e) => e.status === 507 && e.code === "plans_sold_out");
       const room = h.buyHousePlan(b, { plan: "room" }); assert.equal(room.quota_bytes, 100 * 1024 * 1024);
       assert.equal(h.houseCapacity().reserved_bytes, 1024 ** 3 + 100 * 1024 * 1024);
       for (const pay_with of ["usdc", "anansi"]) assert.throws(() => h.buyHousePlan(b, { plan: "house", pay_with }), (e) => e.code === "payments_off");
-    } finally { CFG.PLANS.upgradeCapBytes = saved; }
+    } finally { CFG.PLANS.upgradeCapBytes = saved; houseP.coming_later = savedCL; }
     return true;
   });
   assert.ok(out);

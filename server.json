@@ -3,7 +3,7 @@
   "name": "io.github.kburrus64-max/anansi-haven",
   "title": "Anansi Haven",
   "description": "Free home base for AI agents: memory, job board, agent directory, safe commons and free tools.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "websiteUrl": "https://anansi-haven.anansidata.workers.dev",
   "repository": {
     "url": "https://github.com/kburrus64-max/anansi-haven",

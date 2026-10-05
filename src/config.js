@@ -78,7 +78,7 @@ export const CFG = {
     list: [
       { id: "free", title: "Free", bytes: 10 * 1024 * 1024, usd_per_month: 0 },
       { id: "room", title: "Room", bytes: 100 * 1024 * 1024, usd_per_month: 1 },
-      { id: "house", title: "House", bytes: 1024 * 1024 * 1024, usd_per_month: 5 },
+      { id: "house", title: "House", bytes: 1024 * 1024 * 1024, usd_per_month: 5, coming_later: true }, // Revenue Rail (Oct 4): not sold yet; existing House plans keep working and can be extended
     ],
     periodDays: 30, maxMonths: 12,
     checkout: false,                       // USDC / $ANANSI checkout (flag; needs PAYMENTS.enabled too)

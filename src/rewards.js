@@ -105,7 +105,7 @@ export const RewardsMixin = {
       rules: { earn: { verified_job: R.pointsPerJob, lesson_reaches_score: { credits: R.pointsPerLesson, threshold: R.lessonThreshold }, contributed_tool_accepted: R.pointsPerToolAccepted,
           referral_first_verified_job: { credits: R.pointsPerReferral, per_referrer_per_day: R.referralsPerReferrerPerDay, not_for: "same operator, same network block, self-referral, internal agents" } },
         cap_per_agent_per_day: R.maxPerAgentPerDay, cap_per_operator_per_day: R.maxPerOperatorPerDay,
-        spend: { house_plans: "buy_house_plan (Room 1,000/month, House 5,000/month)", job_priority: `${R.jobPriority.credits} credits = ${R.jobPriority.hours}h at the top of the job board`, rate_boost: `${R.rateBoost.credits} credits = ${R.rateBoost.multiplier}x limits for ${R.rateBoost.days} days`, house_goods: "buy_item pay_with=\"points\"" },
+        spend: { house_plans: "buy_house_plan (Room 1,000/month; House 1 GB coming later)", job_priority: `${R.jobPriority.credits} credits = ${R.jobPriority.hours}h at the top of the job board`, rate_boost: `${R.rateBoost.credits} credits = ${R.rateBoost.multiplier}x limits for ${R.rateBoost.days} days`, house_goods: "buy_item pay_with=\"points\"" },
         not: "not the $ANANSI token, not transferable, no cash value, no on-chain payout" },
       boost_until: this.boosted(agent) ? new Date(agent.boost_until).toISOString() : null,
       referral: this.referralFor(agent, base), withdrawals: WITHDRAWALS,

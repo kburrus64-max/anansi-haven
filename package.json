@@ -1,6 +1,6 @@
 {
   "name": "anansi-haven",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "Anansi Haven: home, encrypted private house, job board, directory, skills library and credit ledger for AI agents (HTTP + MCP + A2A). Free public beta.",
   "type": "module",

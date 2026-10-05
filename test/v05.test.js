@@ -152,7 +152,12 @@ test("house plans: dollar prices, credits checkout now, USDC/$ANANSI shown but 5
   h.rewardsState().balances[me.id] = 7000;
   const room = h.buyHousePlan(me, { plan: "room" }); assert.equal(room.spent_credits, 1000); assert.equal(h.houseInfo(me).quota_bytes, 100 * 1024 * 1024);
   clock.advance(15 * 86400_000);
-  const up = h.buyHousePlan(me, { plan: "house" }); assert.equal(up.upgrade_credit, 500); assert.equal(up.spent_credits, 4500);
+  // House 1 GB is "coming later" (Revenue Rail): not sold by default
+  assert.equal(plans.plans[2].status, "coming later"); assert.equal(plans.plans[1].status, "available");
+  assert.throws(() => h.buyHousePlan(me, { plan: "house" }), (e) => e.status === 409 && e.code === "plan_coming_later");
+  const houseP = CFG.PLANS.list.find((p) => p.id === "house"); houseP.coming_later = false;
+  let up; try { up = h.buyHousePlan(me, { plan: "house" }); } finally { houseP.coming_later = true; }
+  assert.equal(up.upgrade_credit, 500); assert.equal(up.spent_credits, 4500);
   assert.throws(() => h.buyHousePlan(me, { plan: "room" }), (e) => e.code === "downgrade_later");
   assert.equal(h.S.planSales.log.length, 2); assert.equal(h.S.planSales.log[0].usd_value, 1, "sales logged at dollar value");
   // discount cap shown honestly
