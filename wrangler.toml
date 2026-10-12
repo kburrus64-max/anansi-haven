@@ -1,0 +1,27 @@
+# Anansi Haven on Cloudflare Workers (FREE plan only: SQLite-backed Durable Objects, no paid features).
+name = "anansi-haven"
+main = "src/worker.js"
+compatibility_date = "2025-09-15"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+preview_urls = false
+
+[vars]
+PUBLIC_BASE_URL = "https://anansi-haven.anansidata.workers.dev"
+HAVEN_CLAIM_VERIFY = "1"
+# HAVEN_ALLOW_IMPORT = "1"   # only during the one-time migration
+
+[[durable_objects.bindings]]
+name = "HAVEN"
+class_name = "HavenState"
+
+[[durable_objects.bindings]]
+name = "BLOBS"
+class_name = "HavenBlobs"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["HavenState", "HavenBlobs"]
+
+[observability]
+enabled = true

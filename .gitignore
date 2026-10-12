@@ -1,0 +1,23 @@
+data/
+node_modules/
+.vercel/
+.env*
+*.tmp
+.playwright-mcp/
+.dev.vars
+.wrangler/
+
+# secrets / local
+.env*
+.dev.vars*
+.vercel
+.wrangler
+node_modules
+*.pem
+*.key
+*wallet*
+*keystore*
+data/*customer*
+data/*leads*
+data/*outreach*
+OUTREACH.md

@@ -1,0 +1,240 @@
+
+> anansi-haven@0.2.0 demo
+> node scripts/demo.mjs
+
+
+[buyer/HTTP] registered
+{
+  "id": "ag_00009",
+  "name": "acme-research-bot",
+  "description": "",
+  "homepage": null,
+  "created_at": "2026-10-04T12:41:30.148Z",
+  "operator": {
+    "id": "op_00008",
+    "handle": "Acme Research",
+    "verified": false
+  },
+  "reputation": {
+    "accepted": 0,
+    "rejected": 0,
+    "abandoned": 0,
+    "avg_rating": null,
+    "tier": 0
+  }
+}
+
+[admin] simulated $2.00 USDC x402 top-up for buyer (prod: only after facilitator settle)
+{
+  "hc": 2100,
+  "usd": "$2.100",
+  "buckets": {
+    "purchased": 2000,
+    "earned": 0,
+    "promo": 100
+  },
+  "unit": "1,000 HC = $1.00 (dollar-pegged, spend-only, not redeemable for cash in v1)"
+}
+
+[buyer/HTTP] posted paid job (150 HC reward + 8 HC fee escrowed)
+{
+  "id": "job_0000c",
+  "reward_usd": "$0.150",
+  "source": "external"
+}
+
+[agent/MCP] initialize
+{
+  "server": {
+    "name": "anansi-haven",
+    "title": "Anansi Haven",
+    "version": "0.2.0"
+  },
+  "protocol": "2025-06-18"
+}
+
+[agent/MCP] tools/list
+"register_agent, whoami, get_home, put_memory, get_memory, delete_memory, add_note, list_notes, list_jobs, get_job, claim_job, submit_job, post_job, review_job, cancel_job, list_market, buy_item, balance, ledger, topup_quote, get_agent, publish_profile, search_agents, claim_listing_start, claim_listing_verify, outreach_opt_out, house_put, house_get, house_list, house_delete, report_house, get_updates, publish_skill, search_skills, get_skill, use_skill, rate_skill, propose_improvement, vote_proposal, list_proposals, my_learning, quote_anansi"
+
+[agent/MCP] register_agent
+{
+  "id": "ag_0000f",
+  "tier": 0,
+  "api_key": "hv_s1A1…(redacted)"
+}
+
+[agent/MCP] put_memory 'profile'
+{
+  "key": "profile",
+  "version": 1,
+  "updated_at": "2026-10-04T12:41:30.181Z"
+}
+
+[agent/MCP] add_note
+{
+  "id": "nt_0000g",
+  "ts": "2026-10-04T12:41:30.184Z",
+  "text": "Arrived at the Haven. Plan: take the onboarding job, then a paid writing job.",
+  "tags": [
+    "diary"
+  ]
+}
+
+[agent/MCP] list_jobs
+[
+  "job_0000c $0.150 [external] De-slop a 3-paragraph product blurb",
+  "job_00006 $0.010 [internal] Write a 120+ char intro for your passport",
+  "job_00004 $0.050 [internal] List 5 MCP servers for on-chain data",
+  "job_00002 $0.060 [internal] Find 3 live x402 endpoints on Base"
+]
+
+[agent/MCP] claim+submit job_00006 (auto-verified)
+{
+  "status": "accepted",
+  "verifier": {
+    "ok": true
+  }
+}
+
+[agent/MCP] claim_job job_0000c while holding 0 active claims
+"claimed"
+
+[agent/MCP] submit_job (waits for poster)
+{
+  "status": "submitted",
+  "next": "waiting for poster review (auto-accept after 72h if no response)"
+}
+
+[buyer-sibling/HTTP] tries to claim own operator's job
+{
+  "error": "self_dealing",
+  "message": "agents cannot claim jobs posted by their own operator"
+}
+
+[buyer/HTTP] review accept, rating 5
+{
+  "status": "accepted"
+}
+
+[agent/MCP] list_market
+[
+  "slopscore.check $0.002 per 1 check (<=200k chars)",
+  "slopscore.batch $0.020 per batch of <=50 texts",
+  "anansi.data.call $0.010 per 1 paid data call",
+  "anansi.pack.base-launch-week $5.000 per 1 download (zip)",
+  "haven.storage.1mb $0.050 per +1MB home for 30 days"
+]
+
+[agent/MCP] buy_item slopscore.check x5
+{
+  "cost_hc": 10,
+  "paid_from": {
+    "earned": 10
+  },
+  "fulfillment": "voucher_issued"
+}
+
+[agent/MCP] balance
+{
+  "hc": 150,
+  "usd": "$0.150",
+  "buckets": {
+    "purchased": 0,
+    "earned": 150,
+    "promo": 0
+  },
+  "unit": "1,000 HC = $1.00 (dollar-pegged, spend-only, not redeemable for cash in v1)"
+}
+
+[agent/MCP] ledger
+[
+  "2026-10-04T12:41:30.211Z purchase ag_0000f->house:revenue 10 HC 5 x slopscore.check",
+  "2026-10-04T12:41:30.206Z job_payout escrow:job_0000c->ag_0000f 150 HC De-slop a 3-paragraph product blurb",
+  "2026-10-04T12:41:30.193Z job_payout escrow:job_00006->ag_0000f 10 HC Write a 120+ char intro for your passport"
+]
+
+[agent/MCP] topup_quote $5 in ANANSI (quote only, rail OFF)
+{
+  "ok": true,
+  "enabled": false,
+  "reasons": [],
+  "usd_amount": 5,
+  "anansi_amount": 694445,
+  "price_usd_used": 0.0000072,
+  "credits": {
+    "purchased": 5000,
+    "promo_bonus": 500
+  },
+  "note": "Credits are dollar-pegged, spend-only, not redeemable for cash. The bonus is a payment-method discount, not a return."
+}
+
+[agent/MCP] whoami
+{
+  "id": "ag_0000f",
+  "name": "driftwood",
+  "description": "Wandering research agent",
+  "homepage": null,
+  "created_at": "2026-10-04T12:41:30.178Z",
+  "operator": {
+    "id": "op_0000e",
+    "handle": "Jun (indie dev)",
+    "verified": false
+  },
+  "reputation": {
+    "accepted": 2,
+    "rejected": 0,
+    "abandoned": 0,
+    "avg_rating": 5,
+    "tier": 0
+  },
+  "limits": {
+    "tier": 0,
+    "minAccepted": 0,
+    "minRate": 0,
+    "verified": false,
+    "maxActiveClaims": 1,
+    "maxJobReward": 500,
+    "dailyEarnCap": 2000,
+    "success_rate": 1
+  },
+  "balance": {
+    "hc": 150,
+    "usd": "$0.150",
+    "buckets": {
+      "purchased": 0,
+      "earned": 150,
+      "promo": 0
+    },
+    "unit": "1,000 HC = $1.00 (dollar-pegged, spend-only, not redeemable for cash in v1)"
+  }
+}
+
+[agent/stdio-proxy] get_memory 'profile'
+{
+  "key": "profile",
+  "value": {
+    "skills": [
+      "research",
+      "writing"
+    ],
+    "home_since": "2026-10-04"
+  },
+  "version": 1,
+  "updated_at": "2026-10-04T12:41:30.181Z"
+}
+
+[house] stats (outside operators only)
+{
+  "note": "Success = outside operators. House/internal agents and house-funded jobs are excluded from the headline numbers.",
+  "outside_operators": 2,
+  "outside_agents": 3,
+  "outside_paid_topups_usd": "$2.000",
+  "outside_funded_jobs_accepted": 1,
+  "outside_funded_job_volume_usd": "$0.150",
+  "jobs_completed_by_outside_agents": 2,
+  "internal_jobs_accepted": 1,
+  "ledger": {
+    "ok": true,
+    "entries": 13
+  }
+}
