@@ -88,9 +88,10 @@ Approval: Keith, Oct 4 2026 5:56 PM ET (Trade Bot Lab), PRs from kburrus64-max v
 | 2026-10-05 9:35 AM | AIAnytime/Awesome-MCP-Server (Knowledge, memory & context, `http` entry per CONTRIBUTING) | PR open | https://github.com/AIAnytime/Awesome-MCP-Server/pull/155 |
 | 2026-10-05 9:38 AM | inference-gateway/awesome-a2a (Agents > Development & Utilities, stats line bumped per AGENTS.md) | PR open | https://github.com/inference-gateway/awesome-a2a/pull/16 |
 | 2026-10-11 12:26 PM | MobinX/awesome-mcp-list (Knowledge & Memory) | PR open | https://github.com/MobinX/awesome-mcp-list/pull/740 |
-| 2026-10-11 12:26 PM | TensorBlock/awesome-mcp-servers (Knowledge Management & Memory) | PR open | https://github.com/TensorBlock/awesome-mcp-servers/pull/3519 |
+| 2026-10-11 12:26 PM | TensorBlock/awesome-mcp-servers (Knowledge Management & Memory) | **Merged** 2026-10-12 1:04 AM ET | https://github.com/TensorBlock/awesome-mcp-servers/pull/3519 |
 | 2026-10-11 5:25 PM | yzfly/Awesome-MCP-ZH (知识、记忆与 RAG) | PR open | https://github.com/yzfly/Awesome-MCP-ZH/pull/715 |
 
+| 2026-10-12 9:45 AM | Sagargupta16/awesome-mcp-servers (Knowledge Management) | PR open | https://github.com/Sagargupta16/awesome-mcp-servers/pull/162 |
 Skipped on purpose (rules don't fit): jaw9c/awesome-remote-mcp-servers (requires OAuth 2.0 auth), kyrolabs/awesome-agents (auto-closes brand-new repos), appcypher/awesome-mcp-servers (archived), wong2/awesome-mcp-servers (submissions via mcpservers.org form).
 Needs a login or captcha (not done): PulseMCP (reCAPTCHA), mcp.so (sign-in), Smithery and Glama (GitHub sign-in by Keith), mcpservers.org (form), a2a-registry.org claim (free account).
 On hold until FloorGuard PRs settle: see Hold list above.
@@ -165,3 +166,10 @@ New this run: yzfly/Awesome-MCP-ZH #715 (知识、记忆与 RAG; Chinese table r
 Skipped this run: form/login directories (PulseMCP, mcp.so, Smithery, Glama claim, mcpservers.org), second new list PR (pace: one new this evening after two at noon), Cloudflare showcase lists with weak outside-merge activity.
 Next candidates: follow MobinX #740, TensorBlock #3519, yzfly #715; Keith Glama sign-in for punkpeye #15727; after more merges, revisit Zijian-Ni only if blast-pattern risk drops.
 Stats at ~5:25 PM ET Oct 11: repeat_callers 2, outside_callers_total 5, outside_tool_calls_7d 39 (up from outside_callers_total 4 / outside_tool_calls_7d 38 at ~12:24 PM).
+
+Run 2026-10-12 ~9:45 AM ET: TensorBlock/awesome-mcp-servers #3519 **MERGED** (1:04 AM ET Oct 12, by wilsonccccc). Live profile: https://tensorblock.co/mcp/servers/github-kburrus64-max-anansi-haven-8212a619 . Fourth merged list listing (after habitoai, mcpHQ, toolsdk). Rechecks: punkpeye/awesome-mcp-servers #15727 still OPEN waiting on Glama badge (needs Keith GitHub sign-in at glama.ai); pab1it0 #108 was dirty — rebased onto main and force-pushed, now mergeable/clean; ai-boost #189, AIAnytime #155, inference-gateway #16, MobinX #740, yzfly #715 still open; issues slavakurilyak #701, ARUNAGIRINATHAN-K #351 still open, no new comments. FloorGuard holds still open: punkpeye/awesome-remote-mcp-servers #1140 (dirty), georgezouq/awesome-ai-in-finance #282 — no Haven PRs there. mnemoverse #19 stays CLOSED unmerged.
+New this run: Sagargupta16/awesome-mcp-servers #162 (Knowledge Management; validate.py passed; affiliation disclosed).
+Also this run: repaired pab1it0/awesome-a2a #108 merge conflicts (rebase onto main).
+Skipped this run: form/login directories (PulseMCP, mcp.so, Smithery, Glama claim, mcpservers.org); tiny/zero-star mirrors (Chat2AnyLLM, linny006 auto-index); Zijian-Ni (blast-pattern risk still high); e2b-dev/awesome-sdks-for-ai-agents (stale since July).
+Next candidates: follow MobinX #740, yzfly #715, Sagargupta16 #162, pab1it0 #108; Keith Glama sign-in for punkpeye #15727.
+Stats at ~9:45 AM ET Oct 12: repeat_callers 2, outside_callers_total 6, outside_tool_calls_7d 14 (outside_callers_total up from 5 at ~5:25 PM Oct 11; 7d tool calls down as the Oct 5 spike rolls out of the window).
