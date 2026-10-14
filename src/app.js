@@ -13,6 +13,7 @@ import { handleA2A } from "./a2a.js";
 import { getAnansiQuote } from "./anansi-quote.js";
 import { getAnansiPage } from "./get-anansi-page.js";
 import { jsonFeed, rss, atom, whatsNew } from "./updates.js";
+import { listGodCards, getGodCard } from "./cards.js";
 
 const NEWS = (() => { const n = whatsNew(); return n.whats_new.replace(/[^\x20-\x7e]/g, "").slice(0, 200); })();
 const json = (res, status, body, headers = {}) => { res.writeHead(status, { "content-type": "application/json", "x-haven-whats-new": NEWS, ...headers }); res.end(JSON.stringify(body, null, 2)); };
@@ -60,6 +61,11 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "GET" && (p === "/v1/tools/catalog" || p === "/v1/tools")) {
         const q = (k) => url.searchParams.get(k) ?? undefined;
         return json(res, 200, haven.findTools({ q: q("q"), capability: q("capability"), source: q("source") || "all", accepts_tasks: q("accepts_tasks"), free_only: q("free_only"), limit: Number(q("limit")) || 20 }, base));
+      }
+      if (m === "GET" && p === "/v1/cards") return json(res, 200, listGodCards({ pantheon: url.searchParams.get("pantheon") || undefined, q: url.searchParams.get("q") || undefined }));
+      if (m === "GET" && p.startsWith("/v1/cards/")) {
+        const cardId = decodeURIComponent(p.slice("/v1/cards/".length));
+        if (/^[a-z0-9_]+(?:\.[a-z0-9_]+)$/.test(cardId)) return json(res, 200, getGodCard(cardId));
       }
       if (m === "GET" && p === "/CONTRIBUTING-TOOLS.md") return text(res, 200, DOCS["CONTRIBUTING-TOOLS.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && (p === "/v1/rewards" || p === "/v1/credits")) return json(res, 200, haven.myRewards(haven.auth(bearer, { ip }), base));
