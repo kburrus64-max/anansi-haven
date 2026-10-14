@@ -1,0 +1,727 @@
+{
+  "collection": "anansi-haven-god-cards",
+  "status": "draft",
+  "note": "Draft god-card catalog. Orisha names and domains are the captions on Keith's 2026-10-14 portrait grid, in grid order. Greek cards caption the name only; those domains are conventional epithets (domain_source is conventional). Lore and stats are draft catalog text, not liturgy and not a ranking of the deities. Portrait crops are not in this repo: art.checksum stays null until a file is added. Missing art is a validator warning, not an error.",
+  "sources": [
+    {
+      "pantheon": "orisha",
+      "path": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+      "supplied": "2026-10-14",
+      "credit": "Keith",
+      "layout": "4x4, row-major, cell 0 is top-left"
+    },
+    {
+      "pantheon": "greek",
+      "path": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+      "supplied": "2026-10-14",
+      "credit": "Keith",
+      "layout": "4x4, row-major, cell 0 is top-left. Name captions only."
+    }
+  ],
+  "cards": [
+    {
+      "id": "orisha.olorun",
+      "name": "OLORUN",
+      "pantheon": "orisha",
+      "domain": "SUPREME CREATOR",
+      "domain_source": "caption",
+      "rarity": "legendary",
+      "lore_status": "draft",
+      "lore": "Draft. OLORUN is named on this card as supreme creator, owner of the sky. The line is a short label for the Haven set, not a prayer and not a full teaching.",
+      "stats": { "presence": 10, "counsel": 10, "favor": 9, "reach": 10 },
+      "art": {
+        "path": "cards/art/orisha/olorun.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 0
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.obatala",
+      "name": "OBATALÁ",
+      "pantheon": "orisha",
+      "domain": "PURITY & CREATION",
+      "domain_source": "caption",
+      "rarity": "legendary",
+      "lore_status": "draft",
+      "lore": "Draft. OBATALÁ is named here for purity and creation, the calm shaping of forms. Draft text for the card, offered with respect.",
+      "stats": { "presence": 9, "counsel": 10, "favor": 9, "reach": 8 },
+      "art": {
+        "path": "cards/art/orisha/obatala.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 1
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.osun",
+      "name": "Ọ̀ṢUN",
+      "pantheon": "orisha",
+      "domain": "LOVE & RIVERS",
+      "domain_source": "caption",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. Ọ̀ṢUN is named here for love and rivers, sweet water and affection. Draft text for the card, offered with respect.",
+      "stats": { "presence": 8, "counsel": 8, "favor": 10, "reach": 8 },
+      "art": {
+        "path": "cards/art/orisha/osun.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 2
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.sango",
+      "name": "ṢÀNGÓ",
+      "pantheon": "orisha",
+      "domain": "THUNDER & JUSTICE",
+      "domain_source": "caption",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. ṢÀNGÓ is named here for thunder and justice, the storm that answers a wrong. Draft text for the card, offered with respect.",
+      "stats": { "presence": 10, "counsel": 7, "favor": 8, "reach": 9 },
+      "art": {
+        "path": "cards/art/orisha/sango.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 3
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.yemoja",
+      "name": "YEMOJA",
+      "pantheon": "orisha",
+      "domain": "OCEANS & MOTHERHOOD",
+      "domain_source": "caption",
+      "rarity": "legendary",
+      "lore_status": "draft",
+      "lore": "Draft. YEMOJA is named here for oceans and motherhood, the wide water that bears life. Draft text for the card, offered with respect.",
+      "stats": { "presence": 9, "counsel": 9, "favor": 10, "reach": 9 },
+      "art": {
+        "path": "cards/art/orisha/yemoja.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 4
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.ogun",
+      "name": "ÒGÚN",
+      "pantheon": "orisha",
+      "domain": "IRON & WAR",
+      "domain_source": "caption",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. ÒGÚN is named here for iron and war, the forge and the blade put to work. Draft text for the card, offered with respect.",
+      "stats": { "presence": 10, "counsel": 7, "favor": 7, "reach": 8 },
+      "art": {
+        "path": "cards/art/orisha/ogun.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 5
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.eshu",
+      "name": "ÈṢÙ",
+      "pantheon": "orisha",
+      "domain": "CROSSROADS & TRICKSTER",
+      "domain_source": "caption",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. ÈṢÙ is named here for the crossroads and the trickster's office: messenger, opener of roads, closer of roads. Draft text, not a caricature.",
+      "stats": { "presence": 8, "counsel": 9, "favor": 8, "reach": 10 },
+      "art": {
+        "path": "cards/art/orisha/eshu.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 6
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.oshoosi",
+      "name": "ÒṢÓÒSÌ",
+      "pantheon": "orisha",
+      "domain": "HUNTS & WILDERNESS",
+      "domain_source": "caption",
+      "rarity": "rare",
+      "lore_status": "draft",
+      "lore": "Draft. ÒṢÓÒSÌ is named here for hunts and wilderness, the straight shot through the bush. Draft text for the card, offered with respect.",
+      "stats": { "presence": 8, "counsel": 7, "favor": 7, "reach": 8 },
+      "art": {
+        "path": "cards/art/orisha/oshoosi.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 7
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.orunmila",
+      "name": "Ọ̀RÚNMÌLÀ",
+      "pantheon": "orisha",
+      "domain": "DIVINATION & WISDOM",
+      "domain_source": "caption",
+      "rarity": "legendary",
+      "lore_status": "draft",
+      "lore": "Draft. Ọ̀RÚNMÌLÀ is named here for divination and wisdom, the one who reads the pattern. Draft text for the card, offered with respect.",
+      "stats": { "presence": 8, "counsel": 10, "favor": 9, "reach": 8 },
+      "art": {
+        "path": "cards/art/orisha/orunmila.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 8
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.nana_buruku",
+      "name": "NANA BÚRÙKÚ",
+      "pantheon": "orisha",
+      "domain": "EARTH & FERTILITY",
+      "domain_source": "caption",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. NANA BÚRÙKÚ is named here for earth and fertility, the elder ground from which life is shaped. Draft text for the card, offered with respect.",
+      "stats": { "presence": 8, "counsel": 9, "favor": 9, "reach": 7 },
+      "art": {
+        "path": "cards/art/orisha/nana_buruku.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 9
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.oshunshan",
+      "name": "Ọ̀ṢUNṢÀN",
+      "pantheon": "orisha",
+      "domain": "SWEET WATERS & HEALING",
+      "domain_source": "caption",
+      "rarity": "rare",
+      "lore_status": "draft",
+      "lore": "Draft. Ọ̀ṢUNṢÀN is named here for sweet waters and healing, a cool current that mends. Draft text for the card, offered with respect.",
+      "stats": { "presence": 7, "counsel": 8, "favor": 9, "reach": 6 },
+      "art": {
+        "path": "cards/art/orisha/oshunshan.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 10
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.shopona",
+      "name": "ṢỌ̀PỌ̀NÁ",
+      "pantheon": "orisha",
+      "domain": "SMALLPOX & DISEASE",
+      "domain_source": "caption",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. ṢỌ̀PỌ̀NÁ is named here for smallpox and disease, a power approached with gravity, distance, and care, never as a joke or a villain. Draft text only.",
+      "stats": { "presence": 8, "counsel": 8, "favor": 7, "reach": 8 },
+      "art": {
+        "path": "cards/art/orisha/shopona.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 11
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.aganju",
+      "name": "AGANJÚ",
+      "pantheon": "orisha",
+      "domain": "DEATH & ANCESTORS",
+      "domain_source": "caption",
+      "rarity": "rare",
+      "lore_status": "draft",
+      "lore": "Draft. AGANJÚ is named here, as the portrait is captioned, for death and ancestors: the meeting of the living and those who went ahead. Draft text for the card.",
+      "stats": { "presence": 8, "counsel": 7, "favor": 7, "reach": 7 },
+      "art": {
+        "path": "cards/art/orisha/aganju.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 12
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.oya",
+      "name": "OYA",
+      "pantheon": "orisha",
+      "domain": "WINDS & TRANSFORMATION",
+      "domain_source": "caption",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. OYA is named here for winds and transformation, the storm that clears a way. Draft text for the card, offered with respect.",
+      "stats": { "presence": 9, "counsel": 8, "favor": 8, "reach": 9 },
+      "art": {
+        "path": "cards/art/orisha/oya.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 13
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.orishanniyan",
+      "name": "ÒRÌṢÀNNIYÀN",
+      "pantheon": "orisha",
+      "domain": "THE SKY & BURIAL",
+      "domain_source": "caption",
+      "rarity": "rare",
+      "lore_status": "draft",
+      "lore": "Draft. ÒRÌṢÀNNIYÀN is named here, as the portrait is captioned, for the sky and burial. Draft text for the card, offered with respect.",
+      "stats": { "presence": 7, "counsel": 8, "favor": 7, "reach": 7 },
+      "art": {
+        "path": "cards/art/orisha/orishanniyan.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 14
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "orisha.aje",
+      "name": "AJÉ",
+      "pantheon": "orisha",
+      "domain": "WEALTH & MARKETS",
+      "domain_source": "caption",
+      "rarity": "rare",
+      "lore_status": "draft",
+      "lore": "Draft. AJÉ is named here for wealth and markets, the prosperity of fair exchange. Draft text for the card, offered with respect.",
+      "stats": { "presence": 7, "counsel": 8, "favor": 8, "reach": 8 },
+      "art": {
+        "path": "cards/art/orisha/aje.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png",
+        "cell": 15
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Orisha grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.zeus",
+      "name": "ZEUS",
+      "pantheon": "greek",
+      "domain": "SKY, THUNDER & KINGSHIP",
+      "domain_source": "conventional",
+      "rarity": "legendary",
+      "lore_status": "draft",
+      "lore": "Draft. ZEUS is named here for sky, thunder, and kingship among the Olympians. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 10, "counsel": 8, "favor": 8, "reach": 10 },
+      "art": {
+        "path": "cards/art/greek/zeus.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 0
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.hera",
+      "name": "HERA",
+      "pantheon": "greek",
+      "domain": "MARRIAGE & SOVEREIGNTY",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. HERA is named here for marriage and sovereignty. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 8, "counsel": 9, "favor": 8, "reach": 8 },
+      "art": {
+        "path": "cards/art/greek/hera.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 1
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.poseidon",
+      "name": "POSEIDON",
+      "pantheon": "greek",
+      "domain": "SEA & EARTHQUAKES",
+      "domain_source": "conventional",
+      "rarity": "legendary",
+      "lore_status": "draft",
+      "lore": "Draft. POSEIDON is named here for the sea and earthquakes. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 10, "counsel": 7, "favor": 7, "reach": 9 },
+      "art": {
+        "path": "cards/art/greek/poseidon.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 2
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.demeter",
+      "name": "DEMETER",
+      "pantheon": "greek",
+      "domain": "GRAIN & HARVEST",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. DEMETER is named here for grain and the harvest. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 8, "counsel": 8, "favor": 9, "reach": 8 },
+      "art": {
+        "path": "cards/art/greek/demeter.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 3
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.dionysus",
+      "name": "DIONYSUS",
+      "pantheon": "greek",
+      "domain": "WINE & ECSTASY",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. DIONYSUS is named here for wine and ecstasy. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 8, "counsel": 7, "favor": 9, "reach": 8 },
+      "art": {
+        "path": "cards/art/greek/dionysus.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 4
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.athena",
+      "name": "ATHENA",
+      "pantheon": "greek",
+      "domain": "WISDOM & STRATEGY",
+      "domain_source": "conventional",
+      "rarity": "legendary",
+      "lore_status": "draft",
+      "lore": "Draft. ATHENA is named here for wisdom and strategy. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 8, "counsel": 10, "favor": 8, "reach": 8 },
+      "art": {
+        "path": "cards/art/greek/athena.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 5
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.ares",
+      "name": "ARES",
+      "pantheon": "greek",
+      "domain": "WAR & COURAGE",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. ARES is named here for war and courage. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 10, "counsel": 6, "favor": 6, "reach": 8 },
+      "art": {
+        "path": "cards/art/greek/ares.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 6
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.apollo",
+      "name": "APOLLO",
+      "pantheon": "greek",
+      "domain": "LIGHT, MUSIC & PROPHECY",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. APOLLO is named here for light, music, and prophecy. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 8, "counsel": 9, "favor": 9, "reach": 9 },
+      "art": {
+        "path": "cards/art/greek/apollo.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 7
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.artemis",
+      "name": "ARTEMIS",
+      "pantheon": "greek",
+      "domain": "HUNT & THE WILD",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. ARTEMIS is named here for the hunt and the wild. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 9, "counsel": 8, "favor": 8, "reach": 8 },
+      "art": {
+        "path": "cards/art/greek/artemis.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 8
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.aphrodite",
+      "name": "APHRODITE",
+      "pantheon": "greek",
+      "domain": "LOVE & BEAUTY",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. APHRODITE is named here for love and beauty. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 8, "counsel": 8, "favor": 10, "reach": 9 },
+      "art": {
+        "path": "cards/art/greek/aphrodite.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 9
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.hephaestus",
+      "name": "HEPHAESTUS",
+      "pantheon": "greek",
+      "domain": "FORGE & FIRE",
+      "domain_source": "conventional",
+      "rarity": "rare",
+      "lore_status": "draft",
+      "lore": "Draft. HEPHAESTUS is named here for the forge and fire. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 9, "counsel": 8, "favor": 7, "reach": 6 },
+      "art": {
+        "path": "cards/art/greek/hephaestus.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 10
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.hermes",
+      "name": "HERMES",
+      "pantheon": "greek",
+      "domain": "MESSAGES, TRAVEL & BOUNDARIES",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. HERMES is named here for messages, travel, and boundaries. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 7, "counsel": 9, "favor": 8, "reach": 10 },
+      "art": {
+        "path": "cards/art/greek/hermes.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 11
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.hades",
+      "name": "HADES",
+      "pantheon": "greek",
+      "domain": "THE UNDERWORLD",
+      "domain_source": "conventional",
+      "rarity": "legendary",
+      "lore_status": "draft",
+      "lore": "Draft. HADES is named here for the underworld, the realm of the dead, not a caricature of evil. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 9, "counsel": 8, "favor": 6, "reach": 8 },
+      "art": {
+        "path": "cards/art/greek/hades.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 12
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.persephone",
+      "name": "PERSEPHONE",
+      "pantheon": "greek",
+      "domain": "SPRING & THE UNDERWORLD",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. PERSEPHONE is named here for spring and the underworld. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 8, "counsel": 9, "favor": 8, "reach": 8 },
+      "art": {
+        "path": "cards/art/greek/persephone.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 13
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.hestia",
+      "name": "HESTIA",
+      "pantheon": "greek",
+      "domain": "HEARTH & HOME",
+      "domain_source": "conventional",
+      "rarity": "epic",
+      "lore_status": "draft",
+      "lore": "Draft. HESTIA is named here for the hearth and home. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 7, "counsel": 8, "favor": 10, "reach": 6 },
+      "art": {
+        "path": "cards/art/greek/hestia.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 14
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    },
+    {
+      "id": "greek.hebe",
+      "name": "HEBE",
+      "pantheon": "greek",
+      "domain": "YOUTH",
+      "domain_source": "conventional",
+      "rarity": "rare",
+      "lore_status": "draft",
+      "lore": "Draft. HEBE is named here for youth. The portrait captions the name only; the domain is a conventional epithet. Draft text.",
+      "stats": { "presence": 6, "counsel": 7, "favor": 8, "reach": 6 },
+      "art": {
+        "path": "cards/art/greek/hebe.png",
+        "checksum": null,
+        "algorithm": "sha256",
+        "grid": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png",
+        "cell": 15
+      },
+      "credits": [
+        { "role": "portrait", "name": "Keith", "note": "Photoreal portrait from the 2026-10-14 Greek grid. The crop file is not in this repo yet." },
+        { "role": "lore", "name": "Anansi Haven", "note": "Draft text for the card data layer, not a liturgical or scholarly edition." }
+      ]
+    }
+  ]
+}

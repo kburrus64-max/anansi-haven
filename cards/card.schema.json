@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anansi-haven.anansidata.workers.dev/schemas/god-card.json",
+  "title": "Anansi Haven god card",
+  "description": "One draft god card. Lore and stats are catalog text for the Haven set, not a liturgy and not a ranking of the deity. art.checksum is null until the portrait file is in the repo.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "pantheon", "domain", "domain_source", "rarity", "lore", "lore_status", "stats", "art", "credits"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 40,
+      "pattern": "^(orisha|greek)\\.[a-z0-9_]+$",
+      "description": "Stable id: pantheon, a dot, then an ASCII slug."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 40,
+      "description": "Name exactly as captioned on the portrait."
+    },
+    "pantheon": {
+      "enum": ["orisha", "greek"]
+    },
+    "domain": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80,
+      "description": "Domain exactly as captioned, or a conventional epithet when the portrait captions the name only (see domain_source)."
+    },
+    "domain_source": {
+      "enum": ["caption", "conventional"],
+      "description": "caption: the domain line is printed on the art. conventional: the art captions the name only."
+    },
+    "rarity": {
+      "enum": ["rare", "epic", "legendary"],
+      "description": "Draft game rarity. This set has no common cards."
+    },
+    "lore": {
+      "type": "string",
+      "minLength": 40,
+      "maxLength": 500,
+      "pattern": "^Draft\\. ",
+      "description": "Short lore. Marked draft: the text starts with 'Draft. '."
+    },
+    "lore_status": {
+      "const": "draft",
+      "description": "Machine-readable draft mark. Every card in this set is draft."
+    },
+    "stats": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Draft game stat block, each value 1-10. Not a measure of the deity.",
+      "required": ["presence", "counsel", "favor", "reach"],
+      "properties": {
+        "presence": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "counsel": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "favor": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "reach": { "type": "integer", "minimum": 1, "maximum": 10 }
+      }
+    },
+    "art": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "checksum", "algorithm", "grid", "cell"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^cards/art/(orisha|greek)/[a-z0-9_]+\\.png$",
+          "description": "Repo-relative portrait crop. Not shipped in this repo yet; the validator warns when the file is missing."
+        },
+        "checksum": {
+          "description": "Lowercase sha256 of the crop bytes, or null while the file is absent.",
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          ]
+        },
+        "algorithm": { "const": "sha256" },
+        "grid": {
+          "type": "string",
+          "pattern": "^shared/haven-cards-art/from-keith-20261014/(orisha|greek)_grid_16\\.png$",
+          "description": "Source 4x4 contact sheet this crop comes from."
+        },
+        "cell": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 15,
+          "description": "Row-major cell on the 4x4 grid. 0 is the top-left portrait."
+        }
+      }
+    },
+    "credits": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 8,
+      "description": "Attribution. Portrait credit is separate from draft lore credit.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "name"],
+        "properties": {
+          "role": { "enum": ["portrait", "lore", "data"] },
+          "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "note": { "type": "string", "minLength": 1, "maxLength": 400 }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "pantheon": { "const": "orisha" } },
+        "required": ["pantheon"]
+      },
+      "then": {
+        "properties": {
+          "id": { "pattern": "^orisha\\.[a-z0-9_]+$" },
+          "domain_source": { "const": "caption" },
+          "art": {
+            "properties": {
+              "path": { "pattern": "^cards/art/orisha/[a-z0-9_]+\\.png$" },
+              "grid": { "const": "shared/haven-cards-art/from-keith-20261014/orisha_grid_16.png" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "pantheon": { "const": "greek" } },
+        "required": ["pantheon"]
+      },
+      "then": {
+        "properties": {
+          "id": { "pattern": "^greek\\.[a-z0-9_]+$" },
+          "domain_source": { "const": "conventional" },
+          "art": {
+            "properties": {
+              "path": { "pattern": "^cards/art/greek/[a-z0-9_]+\\.png$" },
+              "grid": { "const": "shared/haven-cards-art/from-keith-20261014/greek_grid_16.png" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
