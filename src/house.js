@@ -88,18 +88,23 @@ export const HouseMixin = {
     months = Math.floor(Number(months) || 1); if (months < 1 || months > P.maxMonths) throw err(400, "bad_months", `months: 1..${P.maxMonths}`);
     const usdPrice = plan.usd_per_month * months; const discount = +(usdPrice * P.anansiDiscountBps / 10_000).toFixed(2);
     const discountAvailable = this.anansiDiscountUsedToday() + discount <= P.anansiDiscountCapUsdPerDay;
+    const checkoutOn = !!(CFG.PAYMENTS.enabled && P.checkout && !plan.coming_later);
     return { plan: plan.id, months, bytes: plan.bytes, usd: usdPrice, status: plan.coming_later ? "coming later" : "available",
       pay_with: {
-        credits: { amount: Math.round(usdPrice * CFG.HC_PER_USD), unit: "ANANSI credits", available: true },
-        usdc: { usd: usdPrice, available: false, status: "coming soon" },
+        credits: { amount: Math.round(usdPrice * CFG.HC_PER_USD), unit: "ANANSI credits", available: !plan.coming_later },
+        usdc: { usd: usdPrice, available: checkoutOn, status: checkoutOn ? "available" : "coming soon", ...(checkoutOn ? { pay_to: CFG.PAYMENTS.receiveAddress, network: CFG.PAYMENTS.network } : {}) },
         anansi: { usd: discountAvailable ? +(usdPrice - discount).toFixed(2) : usdPrice, discount_pct: P.anansiDiscountBps / 100, discount_available_today: discountAvailable,
-          discount_cap: `discounted $ANANSI sales are capped at $${P.anansiDiscountCapUsdPerDay}/day; past the cap the full dollar price applies`, available: false, status: "coming soon",
+          discount_cap: `discounted $ANANSI sales are capped at $${P.anansiDiscountCapUsdPerDay}/day; past the cap the full dollar price applies`, available: checkoutOn, status: checkoutOn ? "available" : "coming soon",
+          ...(checkoutOn ? { pay_to: CFG.PAYMENTS.receiveAddress, network: CFG.PAYMENTS.network } : {}),
           note: "Paid in $ANANSI at the live swap rate at checkout time; logged at its dollar value. This is a discount on a Haven service, not a price or return claim about the token." } } };
   },
   listHousePlans() {
+    const checkoutOn = !!(CFG.PAYMENTS.enabled && P.checkout);
     return { plans: P.list.map((p) => ({ id: p.id, title: p.title, quota_bytes: p.bytes, quota: p.bytes >= 1024 ** 3 ? `${p.bytes / 1024 ** 3} GB` : `${p.bytes / 1024 ** 2} MB`, usd_per_month: p.usd_per_month, status: p.coming_later ? "coming later" : "available",
       ...(p.usd_per_month ? { credits_per_month: p.usd_per_month * CFG.HC_PER_USD, usdc_per_month: p.usd_per_month, anansi_usd_per_month: +(p.usd_per_month * (1 - P.anansiDiscountBps / 10_000)).toFixed(2) } : { note: "always free" }) })),
-      checkout: { credits: "on", usdc: "coming soon", anansi: "coming soon (20% off, capped at $50/day of discounted sales)", why: PAY_OFF },
+      checkout: checkoutOn
+        ? { credits: "on", usdc: "on", anansi: "on (20% off, capped at $50/day of discounted sales)", pay_to: CFG.PAYMENTS.receiveAddress, network: CFG.PAYMENTS.network }
+        : { credits: "on", usdc: "coming soon", anansi: "coming soon (20% off, capped at $50/day of discounted sales)", why: PAY_OFF },
       capacity: this.houseCapacity(), period_days: P.periodDays };
   },
   // Buy or extend a plan. Credits work now. USDC / $ANANSI: quote shown, checkout 503 payments_off until the flag is on.
@@ -110,6 +115,8 @@ export const HouseMixin = {
       throw err(409, "plan_coming_later", `the ${q.plan} plan is coming later. Available now: Free 10 MB (always free) and Room 100 MB ($1/month).`, { available: P.list.filter((p) => !p.coming_later).map((p) => p.id) });
     if (cur.id !== "free" && cur.id !== q.plan && (P.list.find((p) => p.id === cur.id).usd_per_month > P.list.find((p) => p.id === q.plan).usd_per_month))
       throw err(409, "downgrade_later", `you have the ${cur.id} plan until ${new Date(cur.until).toISOString()}; switch to a smaller plan after it ends`);
+    if (cur.id !== q.plan) { const curRes = cur.id === "free" ? this.houseUsed(h) : Math.max(this.houseQuota(h), this.houseUsed(h));
+      if (this.reservedBytes() - curRes + Math.max(q.bytes, this.houseUsed(h)) > P.upgradeCapBytes) throw err(507, "plans_sold_out", "the Haven has no more free-tier storage to sell right now; your current plan keeps working. Try again later.", { quote: q }); }
     if (pay_with === "usdc" || pay_with === "anansi") {
       if (!(CFG.PAYMENTS.enabled && P.checkout)) throw err(503, "payments_off", PAY_OFF, { quote: q });
       return this.createPlanInvoice(agent, q, pay_with);
@@ -117,8 +124,6 @@ export const HouseMixin = {
     if (pay_with !== "credits") throw err(400, "bad_pay_with", "pay_with: credits | usdc | anansi");
     // upgrade: unused days of the current smaller plan count toward the new one
     const credit = cur.id !== "free" && cur.id !== q.plan ? Math.floor(((cur.until - now) / DAY_MS / P.periodDays) * P.list.find((p) => p.id === cur.id).usd_per_month * CFG.HC_PER_USD) : 0;
-    if (cur.id !== q.plan) { const curRes = cur.id === "free" ? this.houseUsed(h) : Math.max(this.houseQuota(h), this.houseUsed(h));
-      if (this.reservedBytes() - curRes + Math.max(q.bytes, this.houseUsed(h)) > P.upgradeCapBytes) throw err(507, "plans_sold_out", "the Haven has no more free-tier storage to sell right now; your current plan keeps working. Try again later.", { quote: q }); }
     const cost = Math.max(0, q.pay_with.credits.amount - credit);
     this.spendPoints(agent.id, cost, `plan:${q.plan}`, "spent_house_plan");
     const start = cur.id === q.plan ? cur.until : now;
@@ -136,6 +141,42 @@ export const HouseMixin = {
     return { invoice: inv, note: "Pay exactly the dollar value shown; the Haven verifies the transfer before applying the plan." };
   },
   // Admin/settlement hook, called only after an on-chain transfer is verified by the payment verifier (not built on Hobby).
+  createSprintInvoice({ operator_handle, contact_email, agent_id, pay_with = "usdc", notes } = {}) {
+    if (!(CFG.PAYMENTS.enabled && P.checkout)) throw err(503, "payments_off", PAY_OFF);
+    if (!["usdc", "anansi", "card_link"].includes(pay_with)) throw err(400, "bad_pay_with", "pay_with: usdc | anansi | card_link");
+    const fullUsd = 49.00;
+    const discount = +(fullUsd * P.anansiDiscountBps / 10_000).toFixed(2);
+    const discountOk = pay_with === "anansi" && (this.anansiDiscountUsedToday() + discount <= P.anansiDiscountCapUsdPerDay);
+    const usdDue = pay_with === "anansi" && discountOk ? +(fullUsd - discount).toFixed(2) : fullUsd;
+    const id = this.store.nextId("inv");
+    const inv = {
+      id,
+      sku: "agent_integration_sprint",
+      plan: "room",
+      months: 12,
+      agent_id: agent_id ? String(agent_id).slice(0, 64) : null,
+      operator_handle: String(operator_handle || "guest").slice(0, 80),
+      contact_email: contact_email ? String(contact_email).slice(0, 120) : null,
+      notes: notes ? String(notes).slice(0, 500) : null,
+      pay_with,
+      usd_due: usdDue,
+      discount_usd: +(fullUsd - usdDue).toFixed(2),
+      pay_to: CFG.PAYMENTS.receiveAddress,
+      network: CFG.PAYMENTS.network,
+      includes: ["1-on-1 MCP + A2A integration sprint", "Verified Operator badge", "12 months Room 100 MB E2E plan"],
+      status: "awaiting_payment",
+      created_at: new Date(this.now()).toISOString()
+    };
+    (this.S.invoices ||= {})[id] = inv;
+    this.save();
+    return {
+      invoice: inv,
+      checkout_url: "https://anansi-haven.anansidata.workers.dev/checkout",
+      note: pay_with === "card_link"
+        ? "Sprint invoice logged. Reply with this invoice_id or pay 49.00 USDC / $39.20 in $ANANSI on Base to 0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860 for immediate settlement."
+        : "Send the exact usd_due amount on Base (eip155:8453) to pay_to and pass your transaction hash + invoice id to settle."
+    };
+  },
   settlePlanInvoice(invoiceId, { tx, verified = false } = {}) {
     if (!(CFG.PAYMENTS.enabled && P.checkout)) throw err(503, "payments_off", PAY_OFF);
     const inv = this.S.invoices?.[invoiceId]; if (!inv || inv.status !== "awaiting_payment") throw err(404, "not_found", "no open invoice");
@@ -143,11 +184,11 @@ export const HouseMixin = {
     const S = (this.S.planSales ||= { log: [], discountUsd: {} }); const d = dayKey(this.now());
     if (inv.discount_usd && (S.discountUsd[d] || 0) + inv.discount_usd > P.anansiDiscountCapUsdPerDay) throw err(409, "discount_cap", "today's discounted $ANANSI sales cap is reached; re-quote at full price");
     if (inv.discount_usd) S.discountUsd[d] = +((S.discountUsd[d] || 0) + inv.discount_usd).toFixed(2);
-    const agent = this.S.agents[inv.agent_id]; const h = this.house(agent); const cur = this.housePlan(h); const start = cur.id === inv.plan ? cur.until : this.now();
-    h.plan = { id: inv.plan, since: this.now(), until: start + inv.months * P.periodDays * DAY_MS };
+    const agent = inv.agent_id ? this.S.agents[inv.agent_id] : null; let planUntil = null;
+    if (agent) { const h = this.house(agent); const cur = this.housePlan(h); const start = cur.id === inv.plan ? cur.until : this.now(); h.plan = { id: inv.plan, since: this.now(), until: start + inv.months * P.periodDays * DAY_MS }; planUntil = new Date(h.plan.until).toISOString(); }
     inv.status = "paid"; inv.tx = String(tx).slice(0, 100); inv.paid_at = new Date(this.now()).toISOString();
-    this.logPlanSale({ agent_id: agent.id, plan: inv.plan, months: inv.months, pay_with: inv.pay_with, usd_value: inv.usd_due, discount_usd: inv.discount_usd, tx: inv.tx });
-    this.save(); return { invoice: inv, plan_until: new Date(h.plan.until).toISOString() };
+    this.logPlanSale({ agent_id: agent ? agent.id : inv.operator_handle, sku: inv.sku || inv.plan, plan: inv.plan, months: inv.months, pay_with: inv.pay_with, usd_value: inv.usd_due, discount_usd: inv.discount_usd, tx: inv.tx });
+    this.save(); return { invoice: inv, plan_until: planUntil };
   },
   houseGet(agent, name) {
     const h = this.house(agent); this.houseCheck(h);

@@ -5,8 +5,9 @@
 // in A2A_UTILITY_SKILLS), REST at /v1/free/<name>, the tools catalog and llms.txt automatically.
 import { position_size } from "./position-size.js";
 import { forex_market_hours } from "./forex-market-hours.js";
+import { trade_postmortem } from "./trade-postmortem.js";
 
-export const CONTRIB_TOOLS = [position_size, forex_market_hours];
+export const CONTRIB_TOOLS = [position_size, forex_market_hours, trade_postmortem];
 
 // Planned by Trade Desk (not built yet; listed in the tools catalog as "planned"):
 export const PLANNED_TOOLS = [

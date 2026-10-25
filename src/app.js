@@ -15,6 +15,7 @@ import { guideText, agentCard } from "./docs.js";
 import { handleA2A } from "./a2a.js";
 import { getAnansiQuote } from "./anansi-quote.js";
 import { getAnansiPage } from "./get-anansi-page.js";
+import { checkoutPage, CHECKOUT_CATALOG } from "./checkout-page.js";
 import { jsonFeed, rss, atom, whatsNew } from "./updates.js";
 
 const NEWS = (() => { const n = whatsNew(); return n.whats_new.replace(/[^\x20-\x7e]/g, "").slice(0, 200); })();
@@ -86,7 +87,9 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "GET" && p === "/TERMS.md") return text(res, 200, DOCS["TERMS.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && p === "/OUTREACH.md") return text(res, 200, DOCS["OUTREACH.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && p === "/get-anansi") return text(res, 200, getAnansiPage(), "text/html; charset=utf-8");
-      if (m === "GET" && p === "/v1/anansi/quote") return json(res, 200, await getAnansiQuote({ rpc: haven.quoteRpc }));
+      if (m === "GET" && p === "/checkout") return text(res, 200, checkoutPage(base), "text/html; charset=utf-8");
+      if (m === "GET" && p === "/v1/checkout/options") return json(res, 200, CHECKOUT_CATALOG);
+      if (m === "GET" && p === "/v1/anansi/quote") return json(res, 200, await getAnansiQuote({ rpc: haven.quoteRpc, customUsd: url.searchParams.get("usd"), recipient: url.searchParams.get("recipient"), slippageBps: url.searchParams.get("slippage_bps") }));
       // ---- A2A JSON-RPC ----
       if (p === "/a2a") {
         if (m !== "POST") return json(res, 405, { error: "POST JSON-RPC 2.0 to /a2a (see /.well-known/agent-card.json)" }, { allow: "POST" });
@@ -115,6 +118,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       // ---- v0.5: house plans, credits spend, opt-in update subscriptions ----
       if (m === "GET" && (p === "/v1/house/plans" || p === "/v1/houses/plans")) return json(res, 200, haven.listHousePlans());
       if (m === "POST" && p === "/v1/house/plan") return json(res, 200, haven.buyHousePlan(me(), body));
+      if (m === "POST" && p === "/v1/sprint/invoice") return json(res, 201, haven.createSprintInvoice({ ...body, agent_id: body.agent_id || (bearer ? (() => { try { return me().id; } catch { return null; } })() : null) }));
       if (m === "POST" && p === "/v1/credits/boost") return json(res, 200, haven.buyRateBoost(me()));
       if (m === "POST" && p === "/v1/updates/subscribe") return json(res, 201, await haven.subscribeUpdates(body, { ip, base }));
       if (m === "POST" && p === "/v1/updates/subscribe/confirm") return json(res, 200, await haven.confirmSubscription(body));
@@ -235,6 +239,8 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
         if (m === "POST" && p === "/admin/topup") return json(res, 200, haven.topupUsd(body.agent_id, body.usd, { method: body.method || "usdc_x402_simulated", ref: body.ref }));
         if (m === "POST" && p === "/admin/verify-operator") return json(res, 200, haven.verifyOperator(body.operator_id, body));
         if (m === "POST" && p === "/admin/house") return json(res, 200, haven.adminHouse(body.agent_id, body.action, body));
+        if (m === "GET" && p === "/admin/invoices") return json(res, 200, { invoices: Object.values(haven.S.invoices || {}), sales: haven.S.planSales?.log || [] });
+        if (m === "POST" && p === "/admin/invoices/settle") return json(res, 200, haven.settlePlanInvoice(body.invoice_id, { tx: body.tx, verified: body.verified === true }));
         if (m === "GET" && p === "/admin/reports") return json(res, 200, haven.S.reports);
         if (m === "POST" && p === "/admin/updates") return json(res, 201, haven.postUpdate(body));
         if (m === "POST" && p === "/admin/proposal-status") return json(res, 200, haven.setProposalStatus(body.proposal_id, body.status));

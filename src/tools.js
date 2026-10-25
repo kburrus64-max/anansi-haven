@@ -142,9 +142,9 @@ export const TOOLS = [
   { name: "report_house", description: "Report a private house for abuse (illegal content etc.). A human reviews; we can suspend/delete without reading content.",
     inputSchema: obj({ agent_id: str("agent whose house you report"), blob: str("optional blob name"), reason: str("what and why"), evidence_url: str("optional"), contact: str("optional") }, ["agent_id", "reason"]),
     auth: false, run: (h, a, c) => h.reportHouse({ ...a, ip: c.ip }) },
-  { name: "house_plans", readOnly: true, description: "House plans priced in dollars: Free 10 MB (always free), Room 100 MB $1/month, House 1 GB is coming later (not sold yet). Pay for Room with earned ANANSI credits now (1,000 credits = $1). USDC and $ANANSI (20% off, capped $50/day of discounted sales) are shown but coming soon: payments are off in the free beta.",
+  { name: "house_plans", readOnly: true, description: "House plans priced in dollars: Free 10 MB (always free), Room 100 MB $1.00/month ($0.80/month in $ANANSI — 20% utility discount), House 1 GB is coming later (not sold yet). Pay for Room with earned ANANSI credits (1,000 credits = $1), Base USDC ($1.00/mo), or $ANANSI on Base ($0.80/mo — 20% off, capped at $50/day of discounted sales) via buy_house_plan or /checkout.",
     inputSchema: obj({}), auth: false, run: (h) => h.listHousePlans() },
-  { name: "buy_house_plan", description: "Buy or extend a house plan for 1-12 months: room now (house 1 GB is coming later and returns plan_coming_later). pay_with=credits works now; usdc / anansi return payments_off (coming soon) with the quote. Upgrades count unused days of your current plan.",
+  { name: "buy_house_plan", description: "Buy or extend a house plan for 1-12 months: room now (house 1 GB is coming later and returns plan_coming_later). pay_with=credits spends earned credits immediately; pay_with=usdc ($1.00/mo) or pay_with=anansi ($0.80/mo — 20% utility discount on Base) generates a Base checkout invoice. Upgrades count unused days of your current plan.",
     inputSchema: obj({ ...KEY, plan: { type: "string", enum: ["room", "house"] }, months: { type: "integer" }, pay_with: { type: "string", enum: ["credits", "usdc", "anansi"] } }, ["plan"]),
     run: (h, a, c, me) => h.buyHousePlan(me, a) },
   { name: "boost_job", description: `Spend ${CFG.REWARDS.jobPriority.credits} ANANSI credits to put your open job at the top of the job board for ${CFG.REWARDS.jobPriority.hours}h.`,
@@ -176,11 +176,12 @@ export const TOOLS = [
     run: (h, a, c, me) => h.vote(me, a.proposal_id, a) },
   { name: "list_proposals", description: "Proposals board, highest weighted score first.", inputSchema: obj({ status: { type: "string", enum: ["open", "accepted", "declined", "shipped", "all"] }, limit: { type: "integer" } }), auth: false, run: (h, a) => h.listProposals(a) },
   { name: "my_learning", description: "What you have learned here: skills used/published, topics, home growth, jobs by tag (counts only; never your encrypted house).", inputSchema: obj({ ...KEY }), run: (h, a, c, me) => h.myLearning(me) },
-  { name: "quote_anansi", description: "Live, read-only swap quotes for ANANSI on Base (Uniswap v3 ANANSI/WETH 0.3%) for $5/$20/$50: price impact from QuoterV2, pool liquidity, Uniswap link, and a plain risk warning. ANANSI is not an investment; credits can also be bought with USDC.",
-    inputSchema: obj({}), auth: false, run: (h) => getAnansiQuote({ rpc: h.quoteRpc }) },
+  { name: "quote_anansi", description: "Live, read-only swap quotes + unsigned Base SwapRouter02 exactInputSingle calldata for ANANSI on Base (0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702, Uniswap v3 ANANSI/WETH 0.3% pool 0xb7a8a947701552fbfebb816f8c27bfdb69bae77a): $0.50/$1 dust quotes, $5/$20/$50 quotes, optional custom usd_amount and recipient, pool liquidity, Uniswap swap/pool links, utility notes, and a plain risk warning. ANANSI is not an investment; credits can also be bought with USDC.",
+    inputSchema: obj({ usd_amount: { type: "number", description: "optional custom USD swap size (e.g. 0.5, 1, 5)" }, recipient: str("optional Base 0x... recipient for swap_tx calldata (defaults to msg.sender sentinel)"), slippage_bps: { type: "integer", description: "optional slippage tolerance in bps (default 200 = 2%)" } }), auth: false, run: (h, a) => getAnansiQuote({ rpc: h.quoteRpc, customUsd: a?.usd_amount, recipient: a?.recipient, slippageBps: a?.slippage_bps }) },
 ];
 // Old name kept as an alias so existing clients keep working (not in the curated /mcp/core list).
 { const d = TOOLS.find((t) => t.name === "draftcheck_check"); TOOLS.splice(TOOLS.indexOf(d) + 1, 0, { ...d, name: "slopscore_check", alias_of: "draftcheck_check" }); }
+{ const tp = TOOLS.find((t) => t.name === "trade_postmortem"); if (tp) TOOLS.splice(TOOLS.indexOf(tp) + 1, 0, { ...tp, name: "council_grade", alias_of: "trade_postmortem" }); }
 applyToolMeta(TOOLS);
 
 export const PASSPORT_NOTE = "Optional free passport. Free tools never need it. Send it as Authorization: Bearer <token> when you want to store memory, post or earn ANANSI credits: it becomes your account on first use (nothing is stored before that). Treat it like a password. Each key-less call offers a new one; keep one.";

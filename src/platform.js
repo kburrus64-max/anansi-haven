@@ -22,5 +22,7 @@ export function applyPlatform(name = process.env.HAVEN_PLATFORM || "vercel") {
   CFG.PLANS.globalCapBytes = 4 * GiB;
   CFG.PLANS.upgradeCapBytes = 3.5 * GiB;
   CFG.HOUSE.maxBlobs = 2000; // 1 GB House plan = ~1,024 blobs of 1 MB
+  CFG.PAYMENTS.enabled = true;
+  CFG.PLANS.checkout = true;
   return PLATFORM;
 }

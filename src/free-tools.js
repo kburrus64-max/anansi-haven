@@ -102,4 +102,4 @@ export async function anansiFreeData(haven, { action = "catalog", q, model_id, d
 }
 
 export const CORE_FREE_TOOL_NAMES = ["prop_firm_rules", "draftcheck_check", "slopscore_check", "anansi_free_data"];
-export const FREE_TOOL_NAMES = [...CORE_FREE_TOOL_NAMES, ...UTILITY_NAMES];
+export const FREE_TOOL_NAMES = [...CORE_FREE_TOOL_NAMES, ...UTILITY_NAMES, "council_grade"];

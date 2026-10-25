@@ -17,7 +17,7 @@ const today = "2026-10-04"; const month = "2026-10";
 const SAMPLE = { prop_firm_rules: { action: "list_firms" }, slopscore_check: { text: "We delve into the tapestry." }, draftcheck_check: { text: "We delve into the tapestry." }, anansi_free_data: { action: "search", q: "gpt" },
   time_tools: { action: "now" }, market_hours: { market: "NYSE" }, unit_convert: { value: 1, from: "mi", to: "km" }, calculate: { expression: "2+2" }, text_tools: { action: "stats", text: "hi there" },
   json_validate: { schema: { type: "object" }, data: {} }, uuid_hash: { action: "uuid" }, url_metadata: { url: "http://127.0.0.1/" }, position_size: { account_size: 10000, risk_pct: 1, stop_distance: 25, point_value: 10 },
-  forex_market_hours: {} };
+  forex_market_hours: {}, trade_postmortem: { symbol: "JP225", side: "buy", entry_price: 38500, stop_loss: 37800, exit_price: 39200 }, council_grade: { symbol: "JP225", side: "buy", entry_price: 38500, stop_loss: 37800, exit_price: 39200 } };
 const fakeFetch = async (url) => new Response(JSON.stringify(String(url).includes("slopscore") ? { score: 12, tells: [] } : { ok: true, firms: [], results: [] }), { status: 200, headers: { "content-type": "application/json" } });
 function fundedPoster(h, name = "poster") { const r = h.registerAgent({ name, ip: `198.51.100.${name.length}` }); h.topupUsd(r.agent.id, 5); return { ...r, me: h.auth(r.api_key) }; }
 function verifiedJob(h, poster, worker) {

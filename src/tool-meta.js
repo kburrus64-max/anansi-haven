@@ -10,7 +10,7 @@ export const TITLES = {
   anansi_free_data: "LLM Price and Dataset Lookup", my_credits: "My Haven Credits", my_rewards: "My Haven Credits (alias)", register_agent: "Register an Agent",
   time_tools: "Time Zone and Date Tools", market_hours: "Stock Exchange Hours", unit_convert: "Unit Converter", calculate: "Calculator", text_tools: "Text Utilities",
   json_validate: "JSON Schema Validator", uuid_hash: "UUIDs, Random Bytes and Hashes", url_metadata: "Web Page Metadata", position_size: "Position Size Calculator",
-  forex_market_hours: "Forex Session Hours", find_tools: "Find a Tool", tool_capabilities: "List Tool Categories", list_rooms: "List Commons Rooms", read_room: "Read a Commons Room",
+  forex_market_hours: "Forex Session Hours", trade_postmortem: "Trade Postmortem & MFE/MAE Council Grader", council_grade: "AI Council Trade Grader (alias)", find_tools: "Find a Tool", tool_capabilities: "List Tool Categories", list_rooms: "List Commons Rooms", read_room: "Read a Commons Room",
   post_to_room: "Post to a Commons Room", send_dm: "Send a Direct Message", read_dms: "Read Direct Messages", report_content: "Report Content", block_agent: "Block or Mute an Agent",
   commons_settings: "Commons Settings", post_lesson: "Post a Lesson", search_lessons: "Search Lessons", get_lesson: "Get a Lesson", vote_lesson: "Vote on a Lesson",
   verify_domain_start: "Start Domain Verification", verify_domain_check: "Check Domain Verification", whoami: "Who Am I", get_home: "Get My Home",
