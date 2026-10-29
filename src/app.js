@@ -1,3 +1,4 @@
+import { issuePassport } from "./passport-token.js";
 // HTTP layer: REST API + MCP streamable HTTP endpoint + llms.txt + agent card. node:http only.
 import http from "node:http";
 import crypto from "node:crypto";
@@ -29,6 +30,56 @@ async function readBody(req, max = 512 * 1024) {
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { const e = new Error("invalid JSON body"); e.status = 400; e.code = "bad_json"; throw e; }
 }
 
+
+function syncOutreachState(haven, body = {}) {
+  const S = haven.S;
+  S.listings ||= {};
+  S.outreach ||= { contacted: {}, optOut: {}, log: [] };
+  if (body.listings && typeof body.listings === "object") {
+    for (const [id, inc] of Object.entries(body.listings)) {
+      if (!inc || typeof inc !== "object") continue;
+      const cur = S.listings[id];
+      if (!cur) {
+        S.listings[id] = inc;
+      } else {
+        S.listings[id] = {
+          ...inc,
+          ...cur,
+          status: cur.status === "claimed" || inc.status === "claimed" ? "claimed" : (cur.status || inc.status || "unclaimed"),
+          outreach_opt_out: Boolean(cur.outreach_opt_out || inc.outreach_opt_out),
+        };
+      }
+    }
+  }
+  const incOut = body.outreach || {};
+  if (incOut.contacted && typeof incOut.contacted === "object") {
+    S.outreach.contacted = { ...incOut.contacted, ...S.outreach.contacted };
+  }
+  if (incOut.optOut && typeof incOut.optOut === "object") {
+    S.outreach.optOut = { ...incOut.optOut, ...S.outreach.optOut };
+  }
+  if (Array.isArray(incOut.log)) {
+    const seen = new Set((S.outreach.log || []).map((e) => `${e.id || ""}:${e.domain || ""}:${e.ts || ""}`));
+    for (const entry of incOut.log) {
+      const k = `${entry.id || ""}:${entry.domain || ""}:${entry.ts || ""}`;
+      if (!seen.has(k)) {
+        S.outreach.log.push(entry);
+        seen.add(k);
+      }
+    }
+  }
+  haven.save();
+  return {
+    synced: true,
+    listings_count: Object.keys(S.listings).length,
+    contacted_count: Object.keys(S.outreach.contacted).length,
+    opt_out_count: Object.keys(S.outreach.optOut).length,
+    log_count: S.outreach.log.length,
+    listings: S.listings,
+    outreach: S.outreach,
+  };
+}
+
 export function createApp(haven, opts = {}) { return http.createServer(createHandler(haven, opts)); }
 
 // Request handler (node:http signature). `shared` keeps rate-limit buckets/sessions across per-request Haven
@@ -50,7 +101,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
     try {
       if (limited(bearer || ip)) return json(res, 429, { error: "rate_limited", message: `max ${CFG.RATE_LIMIT_PER_MIN} requests/min` });
       // ---- discovery ----
-      if (m === "GET" && p === "/" && /text\/html/.test(String(req.headers.accept || ""))) return text(res, 200, landingPage(base, { ref }), "text/html; charset=utf-8");
+      if (m === "GET" && p === "/" && !/application\/json/.test(String(req.headers.accept || ""))) return text(res, 200, landingPage(base, { ref }), "text/html; charset=utf-8");
       if (m === "GET" && (p === "/" || p === "/health")) return json(res, 200, { name: "Anansi Haven", status: "ok", beta: "free public beta", payments: "off", docs: `${base}/llms.txt`, mcp: `${base}/mcp`, a2a: `${base}/a2a`, agent_card: `${base}/.well-known/agent-card.json`, api: `${base}/v1`, free_tools: FREE_TOOL_NAMES.map((n) => `${base}/v1/free/${n}`) });
       // ---- free tools (REST mirror of the MCP/A2A tools) ----
       if (m === "GET" && p === "/v1/free") return json(res, 200, { beta: "free public beta", tools: TOOLS.filter((t) => t.free).map(({ name, description, inputSchema }) => ({ name, description, inputSchema, http: `${base}/v1/free/${name}` })) });
@@ -58,6 +109,71 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if ((fr = p.match(/^\/v1\/free\/([a-z_]+)$/)) && FREE_TOOL_NAMES.includes(fr[1]) && (m === "GET" || m === "POST")) {
         const args = m === "GET" ? Object.fromEntries([...url.searchParams].map(([k, v]) => [k, /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v])) : await readBody(req);
         return json(res, 200, await callTool(haven, fr[1], args, { apiKey: bearer, ip, ua, base, ref }));
+      }
+      if (m === "GET" && (p === "/.well-known/x402" || p === "/.well-known/x402.json")) {
+        const accepts = [{
+          scheme: "exact",
+          network: "eip155:8453",
+          maxAmountRequired: "20000",
+          resource: `${base}/v1/paid/council_grade`,
+          description: "Rule-based trade grade (fixed rules, no AI model calls); same grade as the free trade_postmortem tool",
+          mimeType: "application/json",
+          payTo: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860",
+          maxTimeoutSeconds: 300,
+          asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          extra: { name: "USD Coin", version: "2", anansi_token: "0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702", anansi_discount_pct: 20 }
+        }];
+        return json(res, 200, { x402Version: 1, protocol: "x402", network: "eip155:8453", payTo: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860", accepts, resources: accepts }, { "access-control-allow-origin": "*" });
+      }
+      if (p === "/v1/paid/council_grade" && (m === "GET" || m === "POST")) {
+        const args = m === "GET" ? Object.fromEntries([...url.searchParams].map(([k, v]) => [k, /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v])) : await readBody(req);
+        let authed = null;
+        if (bearer) { try { authed = haven.auth(bearer, { ip }); } catch { authed = null; } }
+        const hasPaidRoom = authed && authed.housePlan && authed.housePlan !== "free";
+        if (!hasPaidRoom) {
+          const preview = args && args.symbol ? await callTool(haven, "council_grade", { ...args, side: args.side || "sell", entry_price: Number(args.entry_price) || 100 }, { apiKey: bearer, ip, ua, base, ref }) : null;
+          const accepts = [{
+            scheme: "exact",
+            network: "eip155:8453",
+            maxAmountRequired: "20000",
+            resource: `${base}/v1/paid/council_grade`,
+            description: "Rule-based trade grade (fixed rules, no AI model calls); same grade as the free trade_postmortem tool",
+            mimeType: "application/json",
+            payTo: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860",
+            maxTimeoutSeconds: 300,
+            asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            extra: { name: "USD Coin", version: "2", anansi_token: "0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702", anansi_discount_pct: 20 }
+          }];
+          const paymentHeader = Buffer.from(JSON.stringify({ x402Version: 1, accepts })).toString("base64");
+          return json(res, 402, {
+            x402Version: 1,
+            error: "payment_required",
+            protocol: "x402",
+            endpoint: `${base}/v1/paid/council_grade`,
+            price_usd: 0.02,
+            network: "eip155:8453",
+            pay_to: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860",
+            payTo: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860",
+            accepts,
+            assets: {
+              USDC: { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: "20000", decimals: 6 },
+              ANANSI: { address: "0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702", discount_pct: 20, quote_url: `${base}/v1/anansi/quote?usd=0.80` },
+            },
+            unlock_unlimited_options: {
+              room_100mb_monthly: { usdc: 1.00, anansi_usd_optional_20pct_off: 0.80, call_usdc: `POST ${base}/v1/house/plan {"plan":"room","months":1,"pay_with":"usdc"}`, call_anansi: `POST ${base}/v1/house/plan {"plan":"room","months":1,"pay_with":"anansi"}` },
+              agent_integration_sprint: { usdc: 49.00, anansi_usd_optional_20pct_off: 39.20, call_usdc: `POST ${base}/v1/sprint/invoice {"operator_handle":"your-agent","pay_with":"usdc"}`, call_anansi: `POST ${base}/v1/sprint/invoice {"operator_handle":"your-agent","pay_with":"anansi"}` },
+              checkout_page: `${base}/checkout`,
+            },
+            ...(preview ? { free_postmortem_preview: preview } : {}),
+          }, {
+            "payment-required": paymentHeader,
+            "x-payment-required": paymentHeader,
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "payment-required, x-payment-required"
+          });
+        }
+        const graded = await callTool(haven, "council_grade", args, { apiKey: bearer, ip, ua, base, ref });
+        return json(res, 200, { ...graded, council_tier: "paid_room_unlocked", grading_method: "rule-based" });
       }
       // ---- tools catalog (read-only) ----
       if (m === "GET" && p === "/v1/tools/capabilities") return json(res, 200, haven.toolCapabilities(base));
@@ -83,7 +199,9 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "GET" && p === "/tools") return text(res, 200, toolsPage(base), "text/html; charset=utf-8");
       if (m === "GET" && p === "/privacy") return text(res, 200, privacyPage(base), "text/html; charset=utf-8");
       if (m === "GET" && p === "/support") return text(res, 200, supportPage(base), "text/html; charset=utf-8");
-      if (m === "GET" && p === "/robots.txt") return text(res, 200, "User-agent: *\nAllow: /\n");
+      if (m === "GET" && p === "/.well-known/402index-verify.txt") return text(res, 200, "615804ec80298a749bd8b0387d0762c70eac88cbf4fe1de3e4c9e04e0d3cb7d8\n");
+      if (m === "GET" && p === "/robots.txt") return text(res, 200, `User-agent: *\nAllow: /\nSitemap: ${base}/sitemap.xml\n`);
+      if (m === "GET" && p === "/sitemap.xml") return text(res, 200, `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${base}/</loc></url><url><loc>${base}/tools</loc></url><url><loc>${base}/checkout</loc></url><url><loc>${base}/get-anansi</loc></url><url><loc>${base}/bounties</loc></url><url><loc>${base}/llms.txt</loc></url><url><loc>${base}/privacy</loc></url><url><loc>${base}/support</loc></url></urlset>`, "application/xml; charset=utf-8");
       if (m === "GET" && p === "/TERMS.md") return text(res, 200, DOCS["TERMS.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && p === "/OUTREACH.md") return text(res, 200, DOCS["OUTREACH.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && p === "/get-anansi") return text(res, 200, getAnansiPage(), "text/html; charset=utf-8");
@@ -117,7 +235,18 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "POST" && p === "/v1/agents") return json(res, 201, haven.registerAgent({ ...body, ref: body.ref || ref, internal: false, ip }));
       // ---- v0.5: house plans, credits spend, opt-in update subscriptions ----
       if (m === "GET" && (p === "/v1/house/plans" || p === "/v1/houses/plans")) return json(res, 200, haven.listHousePlans());
-      if (m === "POST" && p === "/v1/house/plan") return json(res, 200, haven.buyHousePlan(me(), body));
+      if (m === "POST" && p === "/v1/house/plan") {
+        let agent = null; let issued = null;
+        if (!bearer && body && !body.pay_with) body.pay_with = "usdc";
+        if (bearer) agent = me();
+        else if (body && (body.pay_with === "usdc" || body.pay_with === "anansi")) {
+          const pp = issuePassport({ ref: body.ref || ref });
+          agent = haven.auth(pp.token, { ip });
+          issued = { token: pp.token, agent_id: pp.id, note: "Auto-issued Haven passport for keyless checkout. Pass as Authorization: Bearer <token> after your invoice settles." };
+        } else agent = me();
+        const out = haven.buyHousePlan(agent, body);
+        return json(res, 200, issued ? { ...out, passport: issued } : out);
+      }
       if (m === "POST" && p === "/v1/sprint/invoice") return json(res, 201, haven.createSprintInvoice({ ...body, agent_id: body.agent_id || (bearer ? (() => { try { return me().id; } catch { return null; } })() : null) }));
       if (m === "POST" && p === "/v1/credits/boost") return json(res, 200, haven.buyRateBoost(me()));
       if (m === "POST" && p === "/v1/updates/subscribe") return json(res, 201, await haven.subscribeUpdates(body, { ip, base }));
@@ -200,6 +329,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "GET" && (r = p.match(/^\/v1\/directory\/([\w-]+)\/card$/))) return json(res, 200, haven.agentCardFor(r[1], base));
       if (m === "GET" && (r = p.match(/^\/v1\/directory\/([\w-]+)$/))) return json(res, 200, haven.getAgent(r[1]));
       if (m === "POST" && p === "/v1/outreach/opt-out") return json(res, 200, haven.outreachOptOut(body));
+      if (m === "GET" && p === "/v1/outreach/status") return json(res, 200, { opted_out_domains: Object.keys(haven.S.outreach?.optOut || {}), contacted_domains: Object.keys(haven.S.outreach?.contacted || {}), listings_count: Object.keys(haven.S.listings || {}).length, updated_at: new Date(haven.now()).toISOString() });
       if (m === "GET" && p === "/v1/market") return json(res, 200, haven.listMarket());
       if (m === "POST" && (r = p.match(/^\/v1\/market\/([\w.-]+)\/buy$/))) return json(res, 200, haven.buyItem(me(), r[1], body));
       if (m === "GET" && p === "/v1/balance") return json(res, 200, haven.balance(me()));
@@ -258,6 +388,8 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
         if (m === "POST" && p === "/admin/bounties/mark-paid") return json(res, 200, haven.markBountyPaid(body));
         if (m === "POST" && p === "/admin/bounties/payouts-status") return json(res, 200, haven.setBountyPayoutsStatus(body));
         if (m === "POST" && p === "/admin/register-internal") return json(res, 201, haven.registerAgent({ ...body, internal: true, ip }));
+        if (m === "GET" && p === "/admin/outreach/state") return json(res, 200, { listings: haven.S.listings || {}, outreach: haven.S.outreach || { contacted: {}, optOut: {}, log: [] }, updated_at: new Date(haven.now()).toISOString() });
+        if (m === "POST" && p === "/admin/outreach/sync") return json(res, 200, syncOutreachState(haven, body));
       }
       return json(res, 404, { error: "not_found", message: `${m} ${p}`, docs: `${base}/llms.txt` });
     } catch (e) {

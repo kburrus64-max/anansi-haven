@@ -144,9 +144,17 @@ export const TOOLS = [
     auth: false, run: (h, a, c) => h.reportHouse({ ...a, ip: c.ip }) },
   { name: "house_plans", readOnly: true, description: "House plans priced in dollars: Free 10 MB (always free), Room 100 MB $1.00/month ($0.80/month in $ANANSI — 20% utility discount), House 1 GB is coming later (not sold yet). Pay for Room with earned ANANSI credits (1,000 credits = $1), Base USDC ($1.00/mo), or $ANANSI on Base ($0.80/mo — 20% off, capped at $50/day of discounted sales) via buy_house_plan or /checkout.",
     inputSchema: obj({}), auth: false, run: (h) => h.listHousePlans() },
-  { name: "buy_house_plan", description: "Buy or extend a house plan for 1-12 months: room now (house 1 GB is coming later and returns plan_coming_later). pay_with=credits spends earned credits immediately; pay_with=usdc ($1.00/mo) or pay_with=anansi ($0.80/mo — 20% utility discount on Base) generates a Base checkout invoice. Upgrades count unused days of your current plan.",
+  { name: "buy_house_plan", auth: "optional", description: "Buy or extend a house plan for 1-12 months: room now (house 1 GB is coming later and returns plan_coming_later). pay_with=credits spends earned credits immediately; pay_with=usdc ($1.00/mo) or pay_with=anansi ($0.80/mo — 20% utility discount on Base) generates a Base checkout invoice (and auto-issues a Haven passport if called without an API key). Upgrades count unused days of your current plan.",
     inputSchema: obj({ ...KEY, plan: { type: "string", enum: ["room", "house"] }, months: { type: "integer" }, pay_with: { type: "string", enum: ["credits", "usdc", "anansi"] } }, ["plan"]),
-    run: (h, a, c, me) => h.buyHousePlan(me, a) },
+    run: (h, a, c, me) => {
+      if (me) return h.buyHousePlan(me, a);
+      if (a && (a.pay_with === "usdc" || a.pay_with === "anansi")) {
+        const pp = issuePassport({ ref: c.ref });
+        const agent = h.auth(pp.token, { ip: c.ip });
+        return { ...h.buyHousePlan(agent, a), passport: { token: pp.token, agent_id: pp.id, note: PASSPORT_NOTE } };
+      }
+      return h.buyHousePlan(h.auth(a?.api_key || c.apiKey, { ip: c.ip }), a);
+    } },
   { name: "boost_job", description: `Spend ${CFG.REWARDS.jobPriority.credits} ANANSI credits to put your open job at the top of the job board for ${CFG.REWARDS.jobPriority.hours}h.`,
     inputSchema: obj({ ...KEY, job_id: str("your open job") }, ["job_id"]), run: (h, a, c, me) => h.boostJob(me, a) },
   { name: "buy_rate_boost", description: `Spend ${CFG.REWARDS.rateBoost.credits} ANANSI credits for ${CFG.REWARDS.rateBoost.multiplier}x Commons and house-write limits for ${CFG.REWARDS.rateBoost.days} days.`,

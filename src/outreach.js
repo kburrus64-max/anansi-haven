@@ -49,11 +49,13 @@ function optedOut(S, domain) {
 // Who would be contacted, and why everyone else is skipped. Pure; records nothing.
 export function planOutreach(haven, { base, maxPerRun = CFG.OUTREACH.maxPerRun, today = new Date(haven.now()).toISOString().slice(0, 10) } = {}) {
   const S = haven.S;
-  const sentToday = S.outreach.log.filter((e) => e.ts.startsWith(today) && (e.sent || e.attempted)).length;
+  const sentToday = S.outreach.log.filter((e) => e.ts.startsWith(today) && e.sent).length;
   const room = Math.max(0, Math.min(maxPerRun, CFG.OUTREACH.maxPerDay - sentToday));
   const would = []; const skipped = [];
   const seenDomains = new Set();
-  for (const l of Object.values(S.listings)) {
+  const isLowPri = (d) => /\.(fyi)$/i.test(d || "") || d === "aibenchmarkindex.com" || d === "dishdirectory.com";
+  const sortedListings = Object.values(S.listings).sort((a, b) => Number(isLowPri(a.domain)) - Number(isLowPri(b.domain)));
+  for (const l of sortedListings) {
     const why = [];
     if (l.status !== "unclaimed") why.push("claimed (owner already knows us)");
     if (!l.accepts_tasks) why.push("card does not advertise accepting tasks");
@@ -101,8 +103,9 @@ export async function sendOutreach({ commit, fetcher, post, base, log = () => {}
   const ready = []; const skipped = [];
   for (const w of plan.would_contact) {
     try {
-      if (!(await fetcher.allowed(w.a2a))) { skipped.push({ ...w, payload: undefined, reason: "robots.txt disallows our crawler" }); continue; }
-      const card = await fetcher.getJson((await commit((h) => h.S.listings[w.id]?.endpoints?.agent_card)) || w.a2a.replace(/\/[^/]*$/, "/.well-known/agent-card.json"));
+      const cardUrl = (await commit((h) => h.S.listings[w.id]?.endpoints?.agent_card || h.S.listings[w.id]?.card_url)) || new URL("/.well-known/agent-card.json", w.a2a).href;
+      if (!(await fetcher.allowed(cardUrl))) { skipped.push({ ...w, payload: undefined, reason: "robots.txt disallows our crawler" }); continue; }
+      const card = await fetcher.getJson(cardUrl);
       const c = card?.ok ? cardA2A(card.json) : null;
       if (!c) { skipped.push({ id: w.id, domain: w.domain, reason: `agent card unavailable now (${card?.skipped || card?.status || "error"})` }); continue; }
       if (c.optOut) { skipped.push({ id: w.id, domain: w.domain, reason: "card opts out (noOutreach)" }); await commit((h) => { h.outreachOptOut({ domain: w.domain, reason: "card noOutreach" }); }); continue; }

@@ -91,6 +91,18 @@ export const SYMBOL_BENCHMARKS = {
   },
 };
 
+export const LIVE_12D_REGIME_BENCHMARKS = {
+  SPX500: { trades: 27, wins: 23, losses: 4, win_rate_pct: 85.2, net_r: 3.48, edge_rank: 1, setup_type: "m15_bb_exhaustion_snapback_single_leg", current_range_pos: 0.783, m15_bb_z: -0.40, m15_bb_mid: 7721.18 },
+  XAUUSD: { trades: 26, wins: 19, losses: 7, win_rate_pct: 73.1, net_r: 2.27, edge_rank: 2, setup_type: "m15_bb_exhaustion_snapback_single_leg", current_range_pos: 0.936, m15_bb_z: 0.56, m15_bb_mid: 4059.43 },
+  EURUSD: { trades: 27, wins: 19, losses: 8, win_rate_pct: 70.4, net_r: 3.15, edge_rank: 3, setup_type: "m15_bb_exhaustion_snapback_single_leg", current_range_pos: 0.097, m15_bb_z: -1.62, m15_bb_mid: 1.11342 },
+  NAS100: { trades: 30, wins: 21, losses: 9, win_rate_pct: 70.0, net_r: 0.07, edge_rank: 4, setup_type: "m15_bb_exhaustion_snapback_single_leg", current_range_pos: 0.868, m15_bb_z: -0.17, m15_bb_mid: 29641.85 },
+  US30:   { trades: 29, wins: 19, losses: 10, win_rate_pct: 65.5, net_r: 1.12, edge_rank: 5, setup_type: "m15_bb_exhaustion_snapback_single_leg", current_range_pos: 0.421, m15_bb_z: -0.12, m15_bb_mid: 52381.06 },
+  USDJPY: { trades: 24, wins: 16, losses: 8, win_rate_pct: 66.7, net_r: -1.10, edge_rank: 6, setup_type: "requires_trend_or_wider_stop", current_range_pos: 0.891, m15_bb_z: 0.58, m15_bb_mid: 157.9012 },
+  GBPUSD: { trades: 24, wins: 15, losses: 9, win_rate_pct: 62.5, net_r: -3.03, edge_rank: 7, setup_type: "prefer_london_asia_breakout", current_range_pos: 0.079, m15_bb_z: -1.60, m15_bb_mid: 1.33118 },
+  JP225:  { trades: 22, wins: 12, losses: 10, win_rate_pct: 54.5, net_r: -3.41, edge_rank: 8, setup_type: "requires_keith_2leg_250pt_scale_in_plus_m15_mid_close", tokyo_open_90m_median_range_pts: 693.2, tokyo_open_15m_median_range_pts: 420.3, post_815pm_et_counter_swing_prob_pct: 70.6, current_range_pos: 0.897, m15_bb_z: 0.22, m15_bb_mid: 64245.96 },
+  XAGUSD: { trades: 29, wins: 15, losses: 14, win_rate_pct: 51.7, net_r: -3.94, edge_rank: 9, setup_type: "avoid_single_leg_fade", current_range_pos: 0.933, m15_bb_z: 0.52, m15_bb_mid: 54.354 },
+};
+
 const DEFAULT_BENCHMARK = {
   symbol: "GENERIC", asset_class: "multi_asset", point_value_per_lot_usd: 100, typical_spread_pts: 1.0,
   recommended_stop_floor_pts: 10, recommended_stop_range_pts: [10, 100], default_stop_pts: 25,
@@ -314,17 +326,44 @@ export function tradePostmortem(args = {}) {
         ? `Widen ${rawSym} stop from ${r4(stopDistance)} to >= ${bench.recommended_stop_floor_pts} pts (range ${bench.recommended_stop_range_pts[0]}-${bench.recommended_stop_range_pts[1]} pts) so normal session noise and ${bench.typical_spread_pts}-pt spread do not clip the trade before MFE develops.`
         : `Stop structure (${r4(stopDistance)} pts) clears the ${rawSym} empirical floor (${bench.recommended_stop_floor_pts} pts); lock ${bench.peak_lock_pct}% of peak gain once excursion reaches +${bench.be_trigger_r}R (${beTriggerPts} pts) and enforce a ${bench.time_stop_hours}h time stop.`,
     },
+    regime_12d_expectancy: LIVE_12D_REGIME_BENCHMARKS[rawSym] || {
+      note: "Top 3 12-day M15 exhaustion-snapback markets across 238 trades: SPX500 (85.2% WR, +3.48R), EURUSD (70.4% WR, +3.15R), XAUUSD (73.1% WR, +2.27R). JP225 single-leg fade is -3.41R without 2-leg +250pt scale-in + dynamic m15_bb_mid close (Tokyo open 8:00-8:15 PM ET prints 420.3pt median whip before 70.6% post-8:15 PM counter-swing).",
+      top_3_snapback_markets: [LIVE_12D_REGIME_BENCHMARKS.SPX500, LIVE_12D_REGIME_BENCHMARKS.EURUSD, LIVE_12D_REGIME_BENCHMARKS.XAUUSD],
+    },
+    upgrade_to_council_grade: {
+      paid_endpoint: "https://anansi-haven.anansidata.workers.dev/v1/paid/council_grade",
+      price_x402_usdc: "$0.02 USDC per call on Base (or unlimited with $1.00/mo USDC Haven Room / $49.00 USDC Agent Integration Sprint; optional 20% discount if paying with $ANANSI)",
+      checkout_url: "https://anansi-haven.anansidata.workers.dev/checkout",
+      one_call_room_upgrade_usdc: 'POST https://anansi-haven.anansidata.workers.dev/v1/house/plan {"plan":"room","months":1,"pay_with":"usdc"}',
+      one_call_sprint_upgrade_usdc: 'POST https://anansi-haven.anansidata.workers.dev/v1/sprint/invoice {"operator_handle":"your-agent","pay_with":"usdc"}',
+      one_call_room_upgrade: 'POST https://anansi-haven.anansidata.workers.dev/v1/house/plan {"plan":"room","months":1,"pay_with":"usdc"}',
+      one_call_sprint_upgrade: 'POST https://anansi-haven.anansidata.workers.dev/v1/sprint/invoice {"operator_handle":"your-agent","pay_with":"usdc"}',
+      what_you_unlock: "The same rule-based trade grade as this free tool (fixed rules, no AI model calls), served as a paid x402 endpoint.",
+    },
     pro_upgrade: {
-      tier: "Anansi Haven Room ($1/mo, 20% off with $ANANSI) & $49 Integration Sprint",
-      council_models: ["@gpt", "@deepseek", "@kimi", "AnansiNet"],
-      unlock_how: "Call house_plans / buy_house_plan on Anansi Haven (https://anansi-haven.anansidata.workers.dev) or register_agent for a free passport to store persistent postmortems and unlock 4-model AI Council setup grading.",
+      tier: "Anansi Haven Room ($1.00/mo Base USDC; $0.80/mo with optional $ANANSI) & $49.00 Base USDC Integration Sprint ($39.20 with optional $ANANSI)",
+      grading_method: "rule-based",
+      unlock_how: "Call house_plans / buy_house_plan on Anansi Haven (https://anansi-haven.anansidata.workers.dev) or POST /v1/house/plan keyless in one command to unlock persistent encrypted postmortem storage.",
       haven_url: "https://anansi-haven.anansidata.workers.dev",
+      checkout_url: "https://anansi-haven.anansidata.workers.dev/checkout",
+      payment_rails: {
+        network: "eip155:8453 (Base mainnet)",
+        pay_to: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860",
+        usdc_base: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        anansi_base: "0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702",
+        one_call_room_invoice: 'POST https://anansi-haven.anansidata.workers.dev/v1/house/plan {"plan":"room","months":1,"pay_with":"usdc"}',
+        one_call_sprint_invoice: 'POST https://anansi-haven.anansidata.workers.dev/v1/sprint/invoice {"operator_handle":"your-agent","pay_with":"usdc"}',
+        one_call_room_invoice_anansi_20pct_off: 'POST https://anansi-haven.anansidata.workers.dev/v1/house/plan {"plan":"room","months":1,"pay_with":"anansi"}',
+        one_call_sprint_invoice_anansi_20pct_off: 'POST https://anansi-haven.anansidata.workers.dev/v1/sprint/invoice {"operator_handle":"your-agent","pay_with":"anansi"}',
+        anansi_swap_quote_url: "https://anansi-haven.anansidata.workers.dev/v1/anansi/quote?usd=0.80",
+        stripe_card_pack_5usd: "https://buy.stripe.com/00w14pgOKeuUcJM72C2ZO0e",
+      },
     },
     note: NOTE,
   };
 }
 
-export const DESCRIPTION = "FREE preview + Pro Council Grade. Trade postmortem & MFE/MAE excursion expectancy analyzer: scores entry/exit efficiency, stop-loss placement vs empirical symbol ATR/MFE/MAE benchmarks, R-multiple capture, and rule compliance (rollover window, stop floor, time-stop), with upgrade path to 4-model AI Council grading (@gpt, @deepseek, @kimi, AnansiNet) via Anansi Haven Room / $ANANSI. Informational only, not financial advice.";
+export const DESCRIPTION = "FREE rule-based trade grade. Trade postmortem & MFE/MAE excursion expectancy analyzer: scores entry/exit efficiency, stop-loss placement vs empirical symbol ATR/MFE/MAE benchmarks, R-multiple capture, and rule compliance (rollover window, stop floor, time-stop) using fixed rules (no AI model calls); the paid /v1/paid/council_grade endpoint returns the same rule-based grade. Informational only, not financial advice.";
 
 export const INPUT_SCHEMA = {
   type: "object",

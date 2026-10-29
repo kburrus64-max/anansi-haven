@@ -23,7 +23,7 @@ async function maybeStandaloneFlush(adapter) {
 // Requests that never touch stored state run without loading it: no storage reads or writes, so docs, the
 // agent card, MCP handshakes and the key-less free tools cost nothing against the free-tier storage budget.
 const STATELESS_TOOLS = new Set(["prop_firm_rules", "anansi_free_data", ...TOOLS.filter((t) => t.stateless).map((t) => t.name)]);
-const STATELESS_GET = new Set(["/", "/health", "/llms.txt", "/.well-known/agent-card.json", "/.well-known/agent.json", "/TERMS.md", "/OUTREACH.md", "/REWARDS.md", "/BOUNTIES.md", "/CONTRIBUTING-TOOLS.md", "/robots.txt", "/v1/free", "/tools", "/privacy", "/support", "/checkout", "/v1/checkout/options",
+const STATELESS_GET = new Set(["/", "/health", "/llms.txt", "/.well-known/agent-card.json", "/.well-known/agent.json", "/TERMS.md", "/OUTREACH.md", "/REWARDS.md", "/BOUNTIES.md", "/CONTRIBUTING-TOOLS.md", "/.well-known/402index-verify.txt", "/robots.txt", "/sitemap.xml", "/v1/free", "/tools", "/privacy", "/support", "/checkout", "/v1/checkout/options",
   ...[...STATELESS_TOOLS].map((n) => `/v1/free/${n}`)]);
 const STATELESS_MCP = new Set(["initialize", "notifications/initialized", "notifications/cancelled", "ping", "tools/list", "resources/list", "prompts/list"]);
 export function isStateless(method, url, body) {

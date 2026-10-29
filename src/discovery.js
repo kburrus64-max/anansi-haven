@@ -16,6 +16,8 @@ const USDC = new Set(["0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"]);
 // no token mention, not a Haven market item (brand separation).
 export const SEED_CARDS = [
   { url: "https://floorguard-kappa.vercel.app/.well-known/agent-card.json", note: "Trade Desk's prop-firm rules service (FloorGuard)", tags: ["prop-firm", "rules", "rest-api"] },
+  { url: "https://zambo.dev/.well-known/agent.json", note: "Zambo MCP & AER-1 execution receipts (x402 on Base)", tags: ["mcp", "x402", "receipts"] },
+  { url: "https://www.nanoempireai.com/.well-known/agent.json", note: "NanoEmpire AI Autonomous Tollbooth (x402 on Base)", tags: ["x402", "base", "settlement"] },
 ];
 
 // ---------- robots.txt ----------
