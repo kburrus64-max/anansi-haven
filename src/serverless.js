@@ -28,6 +28,7 @@ const STATELESS_GET = new Set(["/", "/health", "/llms.txt", "/.well-known/agent-
 const STATELESS_MCP = new Set(["initialize", "notifications/initialized", "notifications/cancelled", "ping", "tools/list", "resources/list", "prompts/list"]);
 export function isStateless(method, url, body) {
   const p = new URL(url, "http://x").pathname;
+  if (method === "GET" && (p === "/v1/cards" || p.startsWith("/v1/cards/"))) return true;
   if (method === "GET") return STATELESS_GET.has(p);
   if (method === "DELETE" && p === "/mcp") return true;
   if (method !== "POST") return false;

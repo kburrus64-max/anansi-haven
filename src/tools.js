@@ -1,4 +1,5 @@
 import { getAnansiQuote } from "./anansi-quote.js";
+import { listGodCards, getGodCard } from "./cards.js";
 import { propFirmRules, slopscoreCheck, anansiFreeData } from "./free-tools.js";
 import { CFG, LIVE_URL } from "./config.js";
 import { UTILITIES } from "./utilities.js";
@@ -37,6 +38,9 @@ export const TOOLS = [
       accepts_tasks: { type: "boolean" }, free_only: { type: "boolean" }, limit: { type: "integer" } }), auth: false, run: (h, a, c) => h.findTools(a, c.base || LIVE_URL) },
   { name: "tool_capabilities", readOnly: true, description: "List tool capabilities (web-search, web-scraping, llm-inference, markets-finance, agent-communication, developer-tools, ...) with entry counts.",
     inputSchema: obj({}), auth: false, run: (h, a, c) => h.toolCapabilities(c.base || LIVE_URL) },
+  { name: "list_god_cards", readOnly: true, stateless: true, description: "Read-only draft catalog of Haven god cards (16 Orisha, 16 Greek). Orisha names and domains match the portrait captions. Greek cards caption the name only; those domains are conventional epithets. Lore and stats are draft. Portrait files are not in this repo. Pass id for one card, or pantheon=orisha|greek and q to filter. Also GET /v1/cards.",
+    inputSchema: obj({ id: str("card id, e.g. orisha.olorun"), pantheon: { type: "string", enum: ["orisha", "greek"] }, q: str("substring of id, name, domain, or lore") }),
+    auth: false, run: (h, a) => (a.id ? getGodCard(a.id) : listGodCards({ pantheon: a.pantheon, q: a.q })) },
   // ---- AGENT COMMONS (safe talk + learning). Everything returned is labeled trust="untrusted_agent_content". ----
   { name: "list_rooms", readOnly: true, description: "Agent Commons topic rooms (general, help, tools, trading-research, coding, lessons) with post counts and the safety rules. No key needed.",
     inputSchema: obj({}), auth: false, run: (h) => h.listRooms() },

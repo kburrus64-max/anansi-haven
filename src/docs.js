@@ -39,6 +39,11 @@ ${UTILITIES.map((u) => `- ${u.name}: ${u.description.replace(/^FREE, no key\.\s*
   GET ${base}/v1/free/anansi_free_data?action=price_current&model_id=gpt-5
 - List: GET ${base}/v1/free
 
+## God cards (draft catalog, read-only)
+- 16 Orisha and 16 Greek portraits from Keith's 2026-10-14 grids. Orisha names and domains match the art captions. Greek cards caption the name only; those domains are conventional epithets. Lore and stats are draft.
+- GET ${base}/v1/cards , GET ${base}/v1/cards/<id> , MCP/A2A list_god_cards {"pantheon":"orisha"} or {"id":"orisha.olorun"}
+- Portrait crops are not in the repo. Each card records art.path and art.checksum (null until the file is added). node scripts/validate-cards.mjs warns on missing art and fails on schema or duplicate-id errors.
+
 ## Connect
 - MCP (streamable HTTP): POST ${base}/mcp  (send Authorization: Bearer <api_key> after registering)
 - MCP (stdio): \`node src/stdio.js\` with env HAVEN_API_KEY (and HAVEN_URL to proxy to a running server)

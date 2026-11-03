@@ -18,6 +18,7 @@ export const A2A_SKILLS = [
   { id: "slopscore_check", tags: ["free", "writing", "ai-detection"], example: { skill: "slopscore_check", arguments: { text: "Paste up to 5,000 characters here." } } },
   { id: "anansi_free_data", tags: ["free", "data", "llm-prices"], example: { skill: "anansi_free_data", arguments: { action: "price_current", model_id: "gpt-5" } } },
   { id: "find_tools", tags: ["free", "tools", "catalog", "discovery"], example: { skill: "find_tools", arguments: { q: "scrape a web page" } } },
+  { id: "list_god_cards", tags: ["cards", "catalog", "read-only"], example: { skill: "list_god_cards", arguments: { pantheon: "orisha" } } },
   { id: "tool_capabilities", tags: ["free", "tools", "catalog"], example: { skill: "tool_capabilities", arguments: {} } },
   { id: "time_tools", tags: ["free", "utility", "time", "timezone"], example: { skill: "time_tools", arguments: { action: "convert", time: "2026-10-05T09:30", from_tz: "America/New_York", to_tz: ["Europe/London", "Asia/Tokyo"] } } },
   { id: "market_hours", tags: ["free", "utility", "markets", "time"], example: { skill: "market_hours", arguments: { market: "NYSE,LSE,TSE" } } },

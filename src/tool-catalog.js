@@ -52,7 +52,10 @@ function havenEntries(base) {
     how_to_call: { mcp: "put_memory / get_memory / house_put", http: `${base}/v1/home` }, trust: "first_party" }];
   const planned = PLANNED_TOOLS.map((p) => ({ id: `haven:${p.name}`, source: "haven_planned", name: p.name, summary: p.description, capabilities: capsOf(`${p.name} ${p.description}`).concat(p.category === "trading" ? ["markets-finance"] : []).slice(0, 3),
     status: "planned", owner: p.owner, pricing: "free (when built)", trust: "first_party" }));
-  return [...free, ...commons, ...planned];
+  const cards = [{ id: "haven:list_god_cards", source: "haven", name: "list_god_cards", summary: "Draft catalog of 32 Haven god cards: 16 Orisha and 16 Greek. Read-only. Portrait files are not shipped here.",
+    capabilities: ["creative-media", "data-statistics"], pricing: "free", needs_key: false,
+    how_to_call: { mcp: `${base}/mcp tools/call list_god_cards`, http: `${base}/v1/cards` }, trust: "first_party" }];
+  return [...free, ...cards, ...commons, ...planned];
 }
 function listingEntry(l) {
   const text = [l.name, l.description, (l.tags || []).join(" "), (l.skills || []).map((s) => `${s.id} ${s.name} ${s.description || ""}`).join(" ")].join(" ");

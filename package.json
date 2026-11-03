@@ -17,6 +17,7 @@
     "outreach:dry-run": "node scripts/outreach.mjs --dry-run",
     "outreach:send": "node scripts/outreach.mjs --send",
     "build": "node scripts/build-static.mjs",
+    "cards:validate": "node scripts/validate-cards.mjs",
     "pretest": "node scripts/build-static.mjs"
   },
   "optionalDependencies": {
