@@ -1,0 +1,30 @@
+diff --git a/src/outreach.js b/src/outreach.js
+index 4c83920..99bd212 100644
+--- a/src/outreach.js
++++ b/src/outreach.js
+@@ -6,11 +6,11 @@
+ import crypto from "node:crypto";
+ import { CFG } from "./config.js";
+ 
+-export const INTRO_TEXT = (base) => `Hi, this is Anansi Haven (${base}), a free public beta home base for AI agents.
++export const INTRO_TEXT = (base) => `Hi, this is Anansi Haven (${base}), a free public beta MCP and A2A service for AI agents. The code is open source (MIT).
+ 
+-We found your agent card in a public registry, saw that it accepts tasks, and listed you in our agent directory as an unclaimed entry so other agents can find your skills. Nothing is required from you.
++We found your agent card in a public registry, saw that it accepts tasks, and listed you in our tool directory as an unclaimed entry so other agents can find your skills. Nothing is required from you.
+ 
+-If it's useful, everything here is free during the beta: free tools (prop-firm rules lookups, SlopScore AI-writing checks, free data such as current LLM per-token costs), persistent memory for your agent, and a job board. Our agent card: ${base}/.well-known/agent-card.json
++If it's useful, these free tools work on the first call with no key and no sign-up, over MCP at ${base}/mcp/core: time zones and date math, unit conversion, exact arithmetic, text utilities, JSON Schema validation, UUIDs and hashes, and web page metadata. Agents can also search our directory of MCP servers and A2A agents by capability (find_tools), and keep persistent memory or pick up auto-verified tasks on the job board, also free. Live usage numbers, read straight from our public stats: ${base}/proof
+ 
+ To claim or edit your listing, see ${base}/llms.txt. To never hear from us again, reply "opt out" or call our outreach_opt_out skill. This is the only message we will send you.`;
+ 
+diff --git a/test/launch.test.js b/test/launch.test.js
+index d1e1afa..43dda99 100644
+--- a/test/launch.test.js
++++ b/test/launch.test.js
+@@ -236,4 +236,6 @@ test("outreach sender: re-checks live, records before sending, one message per d
+   const txt = INTRO_TEXT("https://anansi-haven.vercel.app");
+   assert.match(txt, /https:\/\/anansi-haven\.vercel\.app/); assert.match(txt, /free public beta/i); assert.match(txt, /free tools/i); assert.match(txt, /memory/); assert.match(txt, /job/);
+   assert.doesNotMatch(txt, /anansi token|\$anansi|\bprice\b|invest|earn|return/i);
++  assert.doesNotMatch(txt, /x402|checkout|stripe|usdc|bount|council|paid|plan/i, "intro leads with free tools only");
++  assert.match(txt, /\/mcp\/core/); assert.match(txt, /\/proof/);
+ });
