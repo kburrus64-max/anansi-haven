@@ -21,7 +21,7 @@ test("platform: Cloudflare limits are real plan sizes with a total-storage guard
   assert.equal(PLATFORM.name, "cloudflare");
   assert.equal(CFG.PLANS.list.find((p) => p.id === "house").bytes, 1024 ** 3);
   assert.ok(CFG.PLANS.globalCapBytes <= 4 * 1024 ** 3 && CFG.PLANS.upgradeCapBytes < CFG.PLANS.globalCapBytes);
-  assert.equal(CFG.PAYMENTS.enabled, true); assert.equal(CFG.PLANS.checkout, true);
+  assert.equal(CFG.PAYMENTS.enabled, false); assert.equal(CFG.PLANS.checkout, false);
 });
 
 test("state adapter: persists only changed keys, survives a restart, detects conflicts, chunks big keys", async () => {
@@ -69,10 +69,7 @@ test("plans: real quotas, and new paid-plan space stops being sold before the to
       const room = h.buyHousePlan(b, { plan: "room" }); assert.equal(room.quota_bytes, 100 * 1024 * 1024);
       assert.equal(h.houseCapacity().reserved_bytes, 1024 ** 3 + 100 * 1024 * 1024);
       for (const pay_with of ["usdc", "anansi"]) assert.throws(() => h.buyHousePlan(b, { plan: "house", pay_with }), (e) => e.code === "plans_sold_out");
-      const invUsdc = h.buyHousePlan(b, { plan: "room", pay_with: "usdc" });
-      assert.equal(invUsdc.invoice.usd_due, 1); assert.equal(invUsdc.invoice.pay_to, CFG.PAYMENTS.receiveAddress);
-      const invAnansi = h.buyHousePlan(b, { plan: "room", pay_with: "anansi" });
-      assert.equal(invAnansi.invoice.usd_due, 0.8); assert.equal(invAnansi.invoice.discount_usd, 0.2);
+      for (const pay_with of ["usdc", "anansi"]) assert.throws(() => h.buyHousePlan(b, { plan: "room", pay_with }), (e) => e.status === 503 && e.code === "payments_off");
     } finally { CFG.PLANS.upgradeCapBytes = saved; houseP.coming_later = savedCL; }
     return true;
   });

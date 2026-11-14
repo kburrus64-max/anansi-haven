@@ -1,5 +1,6 @@
 // trade_postmortem (alias: council_grade): free, read-only trade postmortem & MFE/MAE excursion expectancy analyzer (Trade Desk).
 // Zero dependencies, deterministic, stateless (< 2 ms). Empirical benchmarks derived from Anansi Trade Desk's closed-trade telemetry.
+import { CFG } from "../config.js";
 const bad = (msg) => Object.assign(new Error(msg), { status: 400, code: "bad_input" });
 const NOTE = "Informational only, not financial advice. Empirical benchmarks derived from Anansi Trade Desk closed-trade MFE/MAE telemetry.";
 
@@ -348,7 +349,7 @@ export function tradePostmortem(args = {}) {
       checkout_url: "https://anansi-haven.anansidata.workers.dev/checkout",
       payment_rails: {
         network: "eip155:8453 (Base mainnet)",
-        pay_to: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860",
+        ...((CFG.PAYMENTS.enabled && CFG.PLANS.checkout) ? { pay_to: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860" } : {}),
         usdc_base: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         anansi_base: "0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702",
         one_call_room_invoice: 'POST https://anansi-haven.anansidata.workers.dev/v1/house/plan {"plan":"room","months":1,"pay_with":"usdc"}',

@@ -60,15 +60,39 @@ export const CHECKOUT_CATALOG = {
       ],
       pay_options: {
         stripe_card: { url: "https://buy.stripe.com/00w14pgOKeuUcJM72C2ZO0e", amount_usd: 5.00 },
-        base_usdc: { amount_usd: 5.00, token: "USDC on Base", pay_to: "0x6D7a2D65B26a87134c0571fb1baaA248eB0a291B" },
+        base_usdc: { amount_usd: 5.00, token: "USDC on Base" },
       },
     },
   ],
   disclaimer: "Payments are for software, encrypted storage, and engineering integration services only. The 20% $ANANSI discount is a service discount on Haven plans and sprints (capped at $50/day of discounted sales), not an investment or return claim.",
 };
 
+
+export const checkoutOn = () => !!(CFG.PAYMENTS.enabled && CFG.PLANS.checkout);
+
+export function checkoutOptions() {
+  if (!checkoutOn()) {
+    return {
+      payments: "off",
+      status: "paused",
+      error: "payments_off",
+      message: "Free to use. Paid plans are paused for now. Nothing is charged and no payment is requested.",
+    };
+  }
+  return CHECKOUT_CATALOG;
+}
+
 export function checkoutPage(base) {
   const b = esc(base);
+  if (!checkoutOn()) {
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anansi Haven — Checkout paused</title>
+<style>body{font:16px/1.55 system-ui,-apple-system,sans-serif;max-width:820px;margin:2rem auto;padding:0 1rem;color:#111}</style></head><body>
+<p><a href="${b}/">&larr; Anansi Haven</a></p>
+<h1>Checkout is paused</h1>
+<p>Free to use. Paid plans are paused for now. Nothing is charged and no payment is requested.</p>
+</body></html>`;
+  }
   const C = CHECKOUT_CATALOG;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Anansi Haven — Checkout: $49 Agent Integration Sprint &amp; $1/mo E2E Room</title>

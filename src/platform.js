@@ -22,7 +22,9 @@ export function applyPlatform(name = process.env.HAVEN_PLATFORM || "vercel") {
   CFG.PLANS.globalCapBytes = 4 * GiB;
   CFG.PLANS.upgradeCapBytes = 3.5 * GiB;
   CFG.HOUSE.maxBlobs = 2000; // 1 GB House plan = ~1,024 blobs of 1 MB
-  CFG.PAYMENTS.enabled = true;
-  CFG.PLANS.checkout = true;
+  // Checkout stays off unless config (or a later explicit flag) turns it on.
+  // Live Workers were creating USDC invoices because this used to force both flags on.
+  CFG.PAYMENTS.enabled = false;
+  CFG.PLANS.checkout = false;
   return PLATFORM;
 }

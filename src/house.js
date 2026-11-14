@@ -135,6 +135,7 @@ export const HouseMixin = {
   logPlanSale(sale) { const S = (this.S.planSales ||= { log: [], discountUsd: {} }); S.log.push({ ts: new Date(this.now()).toISOString(), ...sale }); if (S.log.length > 2000) S.log.splice(0, S.log.length - 2000); },
   // ---- flagged payment path (CFG.PAYMENTS.enabled && CFG.PLANS.checkout, both off). Nothing here runs while payments are off. ----
   createPlanInvoice(agent, q, pay_with) {
+    if (!(CFG.PAYMENTS.enabled && P.checkout)) throw err(503, "payments_off", PAY_OFF, { quote: q });
     const usdDue = pay_with === "anansi" ? q.pay_with.anansi.usd : q.usd; const id = this.store.nextId("inv");
     const inv = { id, agent_id: agent.id, plan: q.plan, months: q.months, pay_with, usd_due: usdDue, discount_usd: +(q.usd - usdDue).toFixed(2), pay_to: CFG.PAYMENTS.receiveAddress, network: CFG.PAYMENTS.network, status: "awaiting_payment", created_at: new Date(this.now()).toISOString() };
     (this.S.invoices ||= {})[id] = inv; this.save();

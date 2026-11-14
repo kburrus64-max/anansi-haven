@@ -17,7 +17,7 @@ import { guideText, agentCard } from "./docs.js";
 import { handleA2A } from "./a2a.js";
 import { getAnansiQuote } from "./anansi-quote.js";
 import { getAnansiPage } from "./get-anansi-page.js";
-import { checkoutPage, CHECKOUT_CATALOG } from "./checkout-page.js";
+import { checkoutPage, checkoutOptions } from "./checkout-page.js";
 import { jsonFeed, rss, atom, whatsNew } from "./updates.js";
 
 const NEWS = (() => { const n = whatsNew(); return n.whats_new.replace(/[^\x20-\x7e]/g, "").slice(0, 200); })();
@@ -106,7 +106,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (limited(bearer || ip)) return json(res, 429, { error: "rate_limited", message: `max ${CFG.RATE_LIMIT_PER_MIN} requests/min` });
       // ---- discovery ----
       if (m === "GET" && p === "/" && !/application\/json/.test(String(req.headers.accept || ""))) return text(res, 200, landingPage(base, { ref }), "text/html; charset=utf-8");
-      if (m === "GET" && (p === "/" || p === "/health")) return json(res, 200, { name: "Anansi Haven", status: "ok", beta: "free public beta", payments: "off", docs: `${base}/llms.txt`, mcp: `${base}/mcp`, a2a: `${base}/a2a`, agent_card: `${base}/.well-known/agent-card.json`, api: `${base}/v1`, free_tools: FREE_TOOL_NAMES.map((n) => `${base}/v1/free/${n}`) });
+      if (m === "GET" && (p === "/" || p === "/health")) return json(res, 200, { name: "Anansi Haven", status: "ok", beta: "free public beta", payments: (CFG.PAYMENTS.enabled && CFG.PLANS.checkout) ? "on" : "off", docs: `${base}/llms.txt`, mcp: `${base}/mcp`, a2a: `${base}/a2a`, agent_card: `${base}/.well-known/agent-card.json`, api: `${base}/v1`, free_tools: FREE_TOOL_NAMES.map((n) => `${base}/v1/free/${n}`) });
       // ---- free tools (REST mirror of the MCP/A2A tools) ----
       if (m === "GET" && p === "/v1/free") return json(res, 200, { beta: "free public beta", tools: TOOLS.filter((t) => t.free).map(({ name, description, inputSchema }) => ({ name, description, inputSchema, http: `${base}/v1/free/${name}` })) });
       let fr;
@@ -115,6 +115,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
         return json(res, 200, await callTool(haven, fr[1], args, { apiKey: bearer, ip, ua, base, ref }));
       }
       if (m === "GET" && (p === "/.well-known/x402" || p === "/.well-known/x402.json")) {
+        if (!(CFG.PAYMENTS.enabled && CFG.PAYMENTS.x402)) return json(res, 503, { error: "payments_off", message: "Free to use. Paid plans are paused for now. Nothing is charged and no payment is requested." }, { "access-control-allow-origin": "*" });
         const accepts = [{
           scheme: "exact",
           network: "eip155:8453",
@@ -135,6 +136,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
         if (bearer) { try { authed = haven.auth(bearer, { ip }); } catch { authed = null; } }
         const hasPaidRoom = authed && authed.housePlan && authed.housePlan !== "free";
         if (!hasPaidRoom) {
+          if (!(CFG.PAYMENTS.enabled && CFG.PAYMENTS.x402)) return json(res, 503, { error: "payments_off", message: "Free to use. Paid plans are paused for now. Nothing is charged and no payment is requested." });
           const preview = args && args.symbol ? await callTool(haven, "council_grade", { ...args, side: args.side || "sell", entry_price: Number(args.entry_price) || 100 }, { apiKey: bearer, ip, ua, base, ref }) : null;
           const accepts = [{
             scheme: "exact",
@@ -207,12 +209,12 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "GET" && p === "/.well-known/402index-verify.txt") return text(res, 200, "615804ec80298a749bd8b0387d0762c70eac88cbf4fe1de3e4c9e04e0d3cb7d8\n");
       if (m === "GET" && p === "/.well-known/appside-mcp.txt") return text(res, 200, "appside-mcp=1c88328b0863f54a33490cfb087ad840ccc1193905e26adf154f95c3b89886eb\n");
       if (m === "GET" && p === "/robots.txt") return text(res, 200, `User-agent: *\nAllow: /\nSitemap: ${base}/sitemap.xml\n`);
-      if (m === "GET" && p === "/sitemap.xml") return text(res, 200, `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${base}/</loc></url><url><loc>${base}/tools</loc></url><url><loc>${base}/proof</loc></url><url><loc>${base}/checkout</loc></url><url><loc>${base}/get-anansi</loc></url><url><loc>${base}/bounties</loc></url><url><loc>${base}/llms.txt</loc></url><url><loc>${base}/privacy</loc></url><url><loc>${base}/support</loc></url></urlset>`, "application/xml; charset=utf-8");
+      if (m === "GET" && p === "/sitemap.xml") return text(res, 200, `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${base}/</loc></url><url><loc>${base}/tools</loc></url><url><loc>${base}/proof</loc></url><url><loc>${base}/bounties</loc></url><url><loc>${base}/llms.txt</loc></url><url><loc>${base}/privacy</loc></url><url><loc>${base}/support</loc></url></urlset>`, "application/xml; charset=utf-8");
       if (m === "GET" && p === "/TERMS.md") return text(res, 200, DOCS["TERMS.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && p === "/OUTREACH.md") return text(res, 200, DOCS["OUTREACH.md"], "text/markdown; charset=utf-8");
       if (m === "GET" && p === "/get-anansi") return text(res, 200, getAnansiPage(), "text/html; charset=utf-8");
       if (m === "GET" && p === "/checkout") return text(res, 200, checkoutPage(base), "text/html; charset=utf-8");
-      if (m === "GET" && p === "/v1/checkout/options") return json(res, 200, CHECKOUT_CATALOG);
+      if (m === "GET" && p === "/v1/checkout/options") return json(res, 200, checkoutOptions());
       if (m === "GET" && p === "/v1/anansi/quote") return json(res, 200, await getAnansiQuote({ rpc: haven.quoteRpc, customUsd: url.searchParams.get("usd"), recipient: url.searchParams.get("recipient"), slippageBps: url.searchParams.get("slippage_bps") }));
       // ---- A2A JSON-RPC ----
       if (p === "/a2a") {
