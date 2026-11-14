@@ -126,7 +126,9 @@ test("trade_postmortem: clean JP225 winner with MFE/MAE and empirical benchmarks
   assert.equal(r.metrics.edge_ratio, 6.75);
   assert.equal(r.symbol_benchmark.recommended_stop_floor_pts, 600);
   assert.deepEqual(r.diagnostics, ["clean_execution"]);
-  assert.ok(r.pro_upgrade && r.pro_upgrade.grading_method === "rule-based" && !("council_models" in r.pro_upgrade));
+  assert.equal(r.paid_plans, "Paid plans are paused for now.");
+  assert.equal(r.pro_upgrade, undefined); assert.equal(r.upgrade_to_council_grade, undefined);
+  assert.ok(!("council_models" in r));
   assert.match(r.note, /Informational only, not financial advice/);
 });
 

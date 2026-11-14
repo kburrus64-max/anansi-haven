@@ -5,6 +5,15 @@ import { UNISWAP_URL, POOL_URL, ADD_LIQUIDITY_URL, SWAP_ROUTER_02, LINKS, UTILIT
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[c]);
 export function getAnansiPage() {
+  if (!(CFG.PAYMENTS.enabled && CFG.PLANS.checkout)) {
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anansi Haven — Page paused</title>
+<style>body{font:16px/1.55 system-ui,-apple-system,sans-serif;max-width:740px;margin:2rem auto;padding:0 1rem;color:#111}</style></head><body>
+<p><a href="/">&larr; Anansi Haven</a></p>
+<h1>This page is paused</h1>
+<p>Free to use. Paid plans are paused for now. Nothing is charged and no payment is requested.</p>
+</body></html>`;
+  }
   const G = CFG.GET_ANANSI;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Get ANANSI &amp; Base Pool (Uniswap v3)</title>

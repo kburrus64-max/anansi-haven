@@ -5,6 +5,8 @@ import { CFG } from "../src/config.js";
 import { TOOLS, callTool } from "../src/tools.js";
 import { createApp } from "../src/app.js";
 import { checkoutOptions, CHECKOUT_CATALOG } from "../src/checkout-page.js";
+import { getAnansiPage } from "../src/get-anansi-page.js";
+import { tradePostmortem } from "../src/contrib/trade-postmortem.js";
 import { fresh } from "./helpers.js";
 
 const SPLITTER = "0x6D7a2D65B26a87134c0571fb1baaA248eB0a291B";
@@ -90,10 +92,43 @@ test("house_plans and buy_house_plan descriptions say paid plans are paused and 
   assert.doesNotMatch(buy.description, /\$1\.00|\$0\.80/);
 });
 
-test("trade_postmortem response omits pay_to while checkout is off", async () => {
+test("GET /get-anansi is a paused page with no prices, checkout links, $ANANSI pitch or wallet addresses", async () => withServer(async (base) => {
+  const page = getAnansiPage();
+  const r = await fetch(base + "/get-anansi");
+  assert.equal(r.status, 200);
+  assert.match(r.headers.get("content-type"), /html/);
+  const html = await r.text();
+  assert.equal(html, page);
+  for (const body of [page, html]) {
+    assert.match(body, /paused/i);
+    assert.match(body, /Paid plans are paused for now/);
+    assert.doesNotMatch(body, /\$ANANSI/i);
+    assert.doesNotMatch(body, /\/checkout/);
+    assert.doesNotMatch(body, /0x[0-9a-fA-F]{40}/);
+    assert.doesNotMatch(body, /buy\.stripe\.com/i);
+    assert.doesNotMatch(body, /uniswap/i);
+    assert.doesNotMatch(body, /\$\d/);
+  }
+}));
+
+test("trade_postmortem drops all upgrade/pro_upgrade copy while checkout is off", async () => {
+  const r = tradePostmortem({ symbol: "JP225", side: "buy", entry_price: 38500, stop_loss: 37800, exit_price: 39200 });
+  assert.equal(r.paid_plans, "Paid plans are paused for now.");
+  assert.equal(r.upgrade_to_council_grade, undefined);
+  assert.equal(r.pro_upgrade, undefined);
+  const raw = JSON.stringify(r);
+  assert.doesNotMatch(raw, /"pay_to"/);
+  assert.doesNotMatch(raw, /buy\.stripe\.com/i);
+  assert.doesNotMatch(raw, /\/checkout/);
+  assert.doesNotMatch(raw, /\/v1\/sprint\/invoice|\/v1\/house\/plan|\/v1\/paid\/council_grade/);
+  assert.doesNotMatch(raw, /\$1\.00|\$0\.80|\$49|\$39\.20|\$0\.02|\$ANANSI/i);
+  assert.ok(!hasSplitter(r));
+
   const { h } = fresh();
   const out = await callTool(h, "trade_postmortem", { symbol: "JP225", side: "buy", entry_price: 38500, stop_loss: 37800, exit_price: 39200 });
-  const raw = JSON.stringify(out);
-  assert.doesNotMatch(raw, /"pay_to"/);
-  assert.ok(!hasSplitter(out));
+  const toolRaw = JSON.stringify(out);
+  assert.match(toolRaw, /Paid plans are paused for now/);
+  assert.doesNotMatch(toolRaw, /"pay_to"/);
+  assert.doesNotMatch(toolRaw, /buy\.stripe\.com/i);
+  assert.doesNotMatch(toolRaw, /upgrade_to_council_grade|"pro_upgrade"/);
 });

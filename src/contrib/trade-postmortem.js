@@ -331,6 +331,7 @@ export function tradePostmortem(args = {}) {
       note: "Top 3 12-day M15 exhaustion-snapback markets across 238 trades: SPX500 (85.2% WR, +3.48R), EURUSD (70.4% WR, +3.15R), XAUUSD (73.1% WR, +2.27R). JP225 single-leg fade is -3.41R without 2-leg +250pt scale-in + dynamic m15_bb_mid close (Tokyo open 8:00-8:15 PM ET prints 420.3pt median whip before 70.6% post-8:15 PM counter-swing).",
       top_3_snapback_markets: [LIVE_12D_REGIME_BENCHMARKS.SPX500, LIVE_12D_REGIME_BENCHMARKS.EURUSD, LIVE_12D_REGIME_BENCHMARKS.XAUUSD],
     },
+    ...((CFG.PAYMENTS.enabled && CFG.PLANS.checkout) ? {
     upgrade_to_council_grade: {
       paid_endpoint: "https://anansi-haven.anansidata.workers.dev/v1/paid/council_grade",
       price_x402_usdc: "$0.02 USDC per call on Base (or unlimited with $1.00/mo USDC Haven Room / $49.00 USDC Agent Integration Sprint; optional 20% discount if paying with $ANANSI)",
@@ -349,7 +350,7 @@ export function tradePostmortem(args = {}) {
       checkout_url: "https://anansi-haven.anansidata.workers.dev/checkout",
       payment_rails: {
         network: "eip155:8453 (Base mainnet)",
-        ...((CFG.PAYMENTS.enabled && CFG.PLANS.checkout) ? { pay_to: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860" } : {}),
+        pay_to: "0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860",
         usdc_base: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         anansi_base: "0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702",
         one_call_room_invoice: 'POST https://anansi-haven.anansidata.workers.dev/v1/house/plan {"plan":"room","months":1,"pay_with":"usdc"}',
@@ -360,6 +361,7 @@ export function tradePostmortem(args = {}) {
         stripe_card_pack_5usd: "https://buy.stripe.com/00w14pgOKeuUcJM72C2ZO0e",
       },
     },
+    } : { paid_plans: "Paid plans are paused for now." }),
     note: NOTE,
   };
 }

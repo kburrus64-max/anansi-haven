@@ -103,9 +103,14 @@ test("Get-ANANSI: quote math, live-shaped quotes for $5/$20/$50, HTTP + MCP + A2
   assert.ok(q.quotes[2].total_cost_pct > q.quotes[0].total_cost_pct);
   assert.equal(q.swap_url, "https://app.uniswap.org/swap?chain=base&outputCurrency=0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702");
   assert.equal(UNISWAP_URL, q.swap_url);
-  const page = getAnansiPage();
-  for (const must of [/thin liquidity/i, /slippage/i, /volatile/i, /not an investment/i, /no.*return|promises any return/i, /USDC/, /outputCurrency=0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702/, /\$5|5\/\$20|\/v1\/anansi\/quote/]) assert.match(page, must);
-  for (const bad of [/burn/i, /buyback/i, /moon/i, /price (will|going to) (go )?up/i, /guaranteed/i, /profit/i, /pump/i]) assert.doesNotMatch(page + JSON.stringify(q), bad);
+  const savedPay = CFG.PAYMENTS.enabled, savedCheckout = CFG.PLANS.checkout;
+  CFG.PAYMENTS.enabled = true; CFG.PLANS.checkout = true;
+  let page;
+  try {
+    page = getAnansiPage();
+    for (const must of [/thin liquidity/i, /slippage/i, /volatile/i, /not an investment/i, /no.*return|promises any return/i, /USDC/, /outputCurrency=0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702/, /\$5|5\/\$20|\/v1\/anansi\/quote/]) assert.match(page, must);
+    for (const bad of [/burn/i, /buyback/i, /moon/i, /price (will|going to) (go )?up/i, /guaranteed/i, /profit/i, /pump/i]) assert.doesNotMatch(page + JSON.stringify(q), bad);
+  } finally { CFG.PAYMENTS.enabled = savedPay; CFG.PLANS.checkout = savedCheckout; }
   const { h } = fresh(); h.quoteRpc = mockRpc();
   const srv = createApp(h); await new Promise((r) => srv.listen(0, "127.0.0.1", r)); const base = `http://127.0.0.1:${srv.address().port}`;
   try {
