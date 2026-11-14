@@ -8,7 +8,7 @@ import { checkoutOptions, CHECKOUT_CATALOG } from "../src/checkout-page.js";
 import { getAnansiPage } from "../src/get-anansi-page.js";
 import { tradePostmortem } from "../src/contrib/trade-postmortem.js";
 import { fresh } from "./helpers.js";
-import { agentCard } from "../src/a2a.js";
+import { agentCard, HELP } from "../src/a2a.js";
 
 const SPLITTER = "0x6D7a2D65B26a87134c0571fb1baaA248eB0a291B";
 const hasSplitter = (v) => JSON.stringify(v).toLowerCase().includes(SPLITTER.toLowerCase());
@@ -134,21 +134,31 @@ test("trade_postmortem drops all upgrade/pro_upgrade copy while checkout is off"
   assert.doesNotMatch(toolRaw, /upgrade_to_council_grade|"pro_upgrade"/);
 });
 
-test("quote_anansi tool description drops $0.50/$1/$5/$20/$50 tiers while checkout is off; the tool still runs", async () => {
+test("quote_anansi tool description drops $0.50/$1/$5/$20/$50 tiers and the USDC credits line while checkout is off; the tool still runs", async () => {
   const q = TOOLS.find((t) => t.name === "quote_anansi");
   assert.doesNotMatch(q.description, /\$0\.50|\$5\/\$20\/\$50|\$20|\$50/);
+  assert.doesNotMatch(q.description, /credits can also be bought with USDC/i);
+  assert.doesNotMatch(q.inputSchema.properties.usd_amount.description, /0\.5|\b1, 5\b|e\.g\./);
   const { h } = fresh();
   // The tool is still registered and callable (this call may fail on RPC in unit tests; HTTP/MCP coverage is in discovery-anansi).
   assert.equal(typeof q.run, "function");
   assert.equal(q.auth, false);
 });
 
-test("updates feed hides items #16 and #17 while checkout is off", async () => withServer(async (base, h) => {
+test("updates feed hides items #14, #16 and #17; #18 does not mention checkout or #17; #6 has no USDC credits line", async () => withServer(async (base, h) => {
   const feed = h.getUpdates({ since: 0, limit: 200 });
   const ids = feed.items.map((u) => u.id);
+  assert.ok(!ids.includes(14), "changelog 14 hidden");
   assert.ok(!ids.includes(16), "changelog 16 hidden");
   assert.ok(!ids.includes(17), "changelog 17 hidden");
-  assert.ok(ids.includes(18), "later paused-plan update still visible");
+  const u18 = feed.items.find((u) => u.id === 18);
+  assert.ok(u18, "later paused-plan update still visible");
+  assert.equal(u18.title, "Free to use. Paid plans are paused for now.");
+  assert.equal(u18.body, "Free to use. Paid plans are paused for now.");
+  assert.doesNotMatch(u18.body, /#17|checkout/i);
+  const u6 = feed.items.find((u) => u.id === 6);
+  assert.ok(u6);
+  assert.doesNotMatch(u6.body, /credits can also be bought with USDC/i);
   const rss = await (await fetch(base + "/updates.rss")).text();
   const json = await (await fetch(base + "/updates.json")).json();
   const atom = await (await fetch(base + "/updates.atom")).text();
@@ -156,6 +166,9 @@ test("updates feed hides items #16 and #17 while checkout is off", async () => w
     const raw = typeof body === "string" ? body : JSON.stringify(body);
     assert.doesNotMatch(raw, /v0\.8: \$ANANSI Base Pool Swap Calldata/);
     assert.doesNotMatch(raw, /v0\.9: Live \$ANANSI 20% utility discount/);
+    assert.doesNotMatch(raw, /v0\.6\.1: House plan \(1 GB\) is coming later/);
+    assert.doesNotMatch(raw, /credits can also be bought with USDC/i);
+    assert.doesNotMatch(raw, /discount in update #17/);
     assert.ok(!hasSplitter(body), name);
   }
 }));
@@ -168,15 +181,26 @@ test("Base Launch Week pack is omitted from the market listing while checkout is
   assert.throws(() => h.buyItem(me, "anansi.pack.base-launch-week"), (e) => e.status === 404 && e.code === "not_found");
 });
 
-test("A2A agent card blanks receiving_address while checkout is off", () => {
+test("A2A agent card blanks receiving_address, drops checkout links, and does not claim checkout is live while flags are off", () => {
   for (const v of ["1.0", "0.3"]) {
     const c = agentCard("https://h", v);
     const raw = JSON.stringify(c);
     assert.doesNotMatch(raw, /0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860/i);
     assert.doesNotMatch(raw, /0x6D7a2D65B26a87134c0571fb1baaA248eB0a291B/i);
+    assert.doesNotMatch(raw, /live on Base/i);
     const params = ((c.capabilities && c.capabilities.extensions) || []).flatMap((e) => e.params ? [e.params] : []);
     for (const p of params) assert.equal(p.receiving_address, "");
+    if (v === "1.0") {
+      assert.equal(c.links.checkout, undefined);
+      assert.equal(c.links.checkout_options, undefined);
+      assert.equal(c.links.get_anansi, undefined);
+      assert.ok(c.links.updates_rss);
+      assert.equal(c.beta.payments, "Free to use. Paid plans are paused for now.");
+    }
   }
+  const help = HELP();
+  assert.match(help, /Free to use\. Paid plans are paused for now\./);
+  assert.doesNotMatch(help, /\$0\.80|\$39\.20|20% utility discount|checkout at \/checkout|\/get-anansi/i);
 });
 
 test("trade_postmortem and council_grade descriptions omit the paid endpoint and stay rule-based, not AI", () => {

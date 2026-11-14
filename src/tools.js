@@ -186,12 +186,12 @@ export const TOOLS = [
   { name: "my_learning", description: "What you have learned here: skills used/published, topics, home growth, jobs by tag (counts only; never your encrypted house).", inputSchema: obj({ ...KEY }), run: (h, a, c, me) => h.myLearning(me) },
   { name: "quote_anansi", get description() {
       const base = "Live, read-only swap quotes + unsigned Base SwapRouter02 exactInputSingle calldata for ANANSI on Base (0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702, Uniswap v3 ANANSI/WETH 0.3% pool 0xb7a8a947701552fbfebb816f8c27bfdb69bae77a)";
-      const rest = "optional custom usd_amount and recipient, pool liquidity, Uniswap swap/pool links, utility notes, and a plain risk warning. ANANSI is not an investment; credits can also be bought with USDC.";
+      const rest = "optional custom usd_amount and recipient, pool liquidity, Uniswap swap/pool links, utility notes, and a plain risk warning. ANANSI is not an investment.";
       return (CFG.PAYMENTS.enabled && CFG.PLANS.checkout)
-        ? `${base}: $0.50/$1 dust quotes, $5/$20/$50 quotes, ${rest}`
+        ? `${base}: $0.50/$1 dust quotes, $5/$20/$50 quotes, ${rest} Credits can also be bought with USDC.`
         : `${base}: ${rest}`;
     },
-    inputSchema: obj({ usd_amount: { type: "number", description: "optional custom USD swap size (e.g. 0.5, 1, 5)" }, recipient: str("optional Base 0x... recipient for swap_tx calldata (defaults to msg.sender sentinel)"), slippage_bps: { type: "integer", description: "optional slippage tolerance in bps (default 200 = 2%)" } }), auth: false, run: (h, a) => getAnansiQuote({ rpc: h.quoteRpc, customUsd: a?.usd_amount, recipient: a?.recipient, slippageBps: a?.slippage_bps }) },
+    inputSchema: obj({ usd_amount: { type: "number", description: "optional custom USD swap size" }, recipient: str("optional Base 0x... recipient for swap_tx calldata (defaults to msg.sender sentinel)"), slippage_bps: { type: "integer", description: "optional slippage tolerance in bps (default 200 = 2%)" } }), auth: false, run: (h, a) => getAnansiQuote({ rpc: h.quoteRpc, customUsd: a?.usd_amount, recipient: a?.recipient, slippageBps: a?.slippage_bps }) },
 ];
 // Old name kept as an alias so existing clients keep working (not in the curated /mcp/core list).
 { const d = TOOLS.find((t) => t.name === "draftcheck_check"); TOOLS.splice(TOOLS.indexOf(d) + 1, 0, { ...d, name: "slopscore_check", alias_of: "draftcheck_check" }); }
