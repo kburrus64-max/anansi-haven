@@ -46,7 +46,7 @@ Limits: about 120 requests per minute per address.
 
 ```bash
 git clone https://github.com/kburrus64-max/anansi-haven && cd anansi-haven
-npm test          # node >= 20, no runtime dependencies
+npm test          # node >= 20; no required runtime dependencies (@vercel/blob is optional)
 npm start         # HTTP + MCP on http://127.0.0.1:8811
 npm run mcp       # stdio MCP server
 ```
