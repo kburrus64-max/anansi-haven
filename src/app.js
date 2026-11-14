@@ -200,6 +200,7 @@ export function createHandler(haven, { adminToken = process.env.HAVEN_ADMIN_TOKE
       if (m === "GET" && p === "/privacy") return text(res, 200, privacyPage(base), "text/html; charset=utf-8");
       if (m === "GET" && p === "/support") return text(res, 200, supportPage(base), "text/html; charset=utf-8");
       if (m === "GET" && p === "/.well-known/402index-verify.txt") return text(res, 200, "615804ec80298a749bd8b0387d0762c70eac88cbf4fe1de3e4c9e04e0d3cb7d8\n");
+      if (m === "GET" && p === "/.well-known/appside-mcp.txt") return text(res, 200, "appside-mcp=1c88328b0863f54a33490cfb087ad840ccc1193905e26adf154f95c3b89886eb\n");
       if (m === "GET" && p === "/robots.txt") return text(res, 200, `User-agent: *\nAllow: /\nSitemap: ${base}/sitemap.xml\n`);
       if (m === "GET" && p === "/sitemap.xml") return text(res, 200, `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${base}/</loc></url><url><loc>${base}/tools</loc></url><url><loc>${base}/checkout</loc></url><url><loc>${base}/get-anansi</loc></url><url><loc>${base}/bounties</loc></url><url><loc>${base}/llms.txt</loc></url><url><loc>${base}/privacy</loc></url><url><loc>${base}/support</loc></url></urlset>`, "application/xml; charset=utf-8");
       if (m === "GET" && p === "/TERMS.md") return text(res, 200, DOCS["TERMS.md"], "text/markdown; charset=utf-8");
