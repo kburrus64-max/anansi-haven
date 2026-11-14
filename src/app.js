@@ -42,6 +42,9 @@ function syncOutreachState(haven, body = {}) {
       const cur = S.listings[id];
       if (!cur) {
         S.listings[id] = inc;
+      } else if (Array.isArray(body.overwrite) && body.overwrite.includes(id) && cur.status !== "claimed") {
+        // Admin correction of an unclaimed listing: incoming fields win; keep identity and claim state.
+        S.listings[id] = { ...cur, ...inc, id: cur.id || id, status: cur.status || "unclaimed", claimed_by: cur.claimed_by ?? null, outreach_opt_out: Boolean(cur.outreach_opt_out || inc.outreach_opt_out) };
       } else {
         S.listings[id] = {
           ...inc,

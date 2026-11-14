@@ -128,6 +128,29 @@ test("unclaimed listing (FloorGuard fixture): flagged, searchable, claim via wel
   assert.equal(ok.status, "claimed"); assert.equal(h.S.profiles[me.id].display_name, "FloorGuard Rules API");
 });
 
+test("claimListingVerify uses redirect:manual and rejects 3xx (Workers-safe)", async () => {
+  const { h } = fresh();
+  const card = JSON.parse(fs.readFileSync(new URL("./fixtures/floorguard-agent-card.json", import.meta.url)));
+  const c = cardToCandidate(card, "https://floorguard-kappa.vercel.app/.well-known/agent-card.json", "seed");
+  const l = h.upsertListing(c);
+  const me = h.auth(h.registerAgent({ name: "fg-owner2" }).api_key);
+  const st = h.claimListingStart(me, l.id);
+  let seen;
+  await assert.rejects(
+    () => h.claimListingVerify(me, l.id, { allowFetch: true, fetchImpl: async (_u, opts) => {
+      seen = opts;
+      return new Response(null, { status: 302, headers: { location: "https://evil.example/.well-known/anansi-haven-claim.txt" } });
+    } }),
+    /HTTP 302 redirect/,
+  );
+  assert.equal(seen.redirect, "manual");
+  const ok2 = await h.claimListingVerify(me, l.id, { allowFetch: true, fetchImpl: async (_u, opts) => {
+    assert.equal(opts.redirect, "manual");
+    return new Response(`# claim\n${st.token}\n`);
+  } });
+  assert.equal(ok2.status, "claimed");
+});
+
 test("outreach: dry-run plan honors accepts_tasks, opt-out, once-ever and caps; intro payload is A2A SendMessage", () => {
   const { h } = fresh();
   const mk = (i, extra = {}) => h.upsertListing({ source: "test", name: `agent${i}`, domain: `a${i}.example`, card_url: `https://a${i}.example/.well-known/agent-card.json`,

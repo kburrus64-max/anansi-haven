@@ -171,7 +171,14 @@ export const DirectoryMixin = {
     if (!allowFetch) throw err(501, "verify_disabled", "claim verification fetch is disabled on this deployment (set HAVEN_CLAIM_VERIFY=1)");
     const url = `https://${l.domain}${CFG.DISCOVERY.claimPath}`;
     let body = "";
-    try { const r = await fetchImpl(url, { redirect: "error", headers: { "user-agent": CFG.DISCOVERY.userAgent }, signal: AbortSignal.timeout(CFG.DISCOVERY.timeoutMs) }); if (!r.ok) throw new Error(`HTTP ${r.status}`); body = (await r.text()).slice(0, 4096); }
+    try {
+      // Workers fetch only accepts "follow" or "manual" (not "error"). Refuse 3xx so a claim
+      // token cannot be satisfied by a hop to another host — same intent as redirect:"error" on Node.
+      const r = await fetchImpl(url, { redirect: "manual", headers: { "user-agent": CFG.DISCOVERY.userAgent }, signal: AbortSignal.timeout(CFG.DISCOVERY.timeoutMs) });
+      if (r.status >= 300 && r.status < 400) throw new Error(`HTTP ${r.status} redirect`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      body = (await r.text()).slice(0, 4096);
+    }
     catch (e) { throw err(424, "verify_failed", `could not fetch ${url}: ${e.message}`); }
     const ok = body.split(/\s+/).some((t) => t && sha(t) === l.claim.token_hash);
     if (!ok) throw err(403, "token_mismatch", `token not found at ${url}`);
