@@ -8,6 +8,7 @@ import { checkoutOptions, CHECKOUT_CATALOG } from "../src/checkout-page.js";
 import { getAnansiPage } from "../src/get-anansi-page.js";
 import { tradePostmortem } from "../src/contrib/trade-postmortem.js";
 import { fresh } from "./helpers.js";
+import { getAnansiQuote } from "../src/anansi-quote.js";
 import { agentCard, HELP } from "../src/a2a.js";
 
 const SPLITTER = "0x6D7a2D65B26a87134c0571fb1baaA248eB0a291B";
@@ -211,4 +212,52 @@ test("trade_postmortem and council_grade descriptions omit the paid endpoint and
     assert.match(t.description, /no AI model calls/);
     assert.doesNotMatch(t.description, /4-model|AI Council/i);
   }
+});
+
+function mockBaseRpc() {
+  const sqrt = 0x4b9abaef201a92cb09dcbe4dc7acn; const hex = (n) => n.toString(16).padStart(64, "0");
+  return async (calls) => calls.map(({ to, data }) => {
+    if (data === "0x3850c7bd") return "0x" + hex(sqrt) + hex(0n).repeat(6);
+    if (data === "0xfeaf968c") return "0x" + hex(1n) + hex(270090000000n) + hex(0n).repeat(3);
+    if (data.startsWith("0x70a08231")) return "0x" + hex(to.toLowerCase().startsWith("0x4200") ? 168600000000000000n : 63150000n * 10n ** 18n);
+    if (data.startsWith("0xc6a5026a")) { const amtIn = BigInt("0x" + data.slice(10 + 128, 10 + 192)); const ideal = (amtIn * 374605582n); const haircut = amtIn > 10n ** 16n ? 900n : 986n; return "0x" + hex(ideal * haircut / 1000n) + hex(0n).repeat(3); }
+    return new Error("unknown");
+  });
+}
+
+function assertQuoteHasNoCheckoutPitch(q, label) {
+  assert.equal(q.links?.checkout, undefined, `${label} links.checkout`);
+  assert.equal(q.links?.checkout_options, undefined, `${label} links.checkout_options`);
+  assert.equal(q.utility?.discounts, undefined, `${label} utility.discounts`);
+  assert.equal("usdc_credits" in q, false, `${label} usdc_credits`);
+  const raw = JSON.stringify(q);
+  assert.doesNotMatch(raw, /\/checkout/);
+  assert.doesNotMatch(raw, /\$0\.80|\$39\.20/);
+  assert.doesNotMatch(raw, /buy\.stripe\.com/i);
+  assert.doesNotMatch(raw, /20% utility discount/i);
+  assert.doesNotMatch(raw, /USDC_NOTE|services can also be paid in Base USDC/i);
+}
+
+test("quote_anansi payload and GET /v1/anansi/quote omit checkout pay fields while flags are off; live quotes still work", async () => {
+  const q = await getAnansiQuote({ rpc: mockBaseRpc(), force: true });
+  assert.ok(q.quotes && q.quotes.length >= 1, "live quotes present");
+  assert.ok(q.token && q.pool);
+  assertQuoteHasNoCheckoutPitch(q, "getAnansiQuote");
+
+  const err = await getAnansiQuote({ rpc: async () => { throw new Error("rpc down"); }, force: true });
+  assert.equal(err.ok, false);
+  assert.ok(err.token && err.pool);
+  assertQuoteHasNoCheckoutPitch(err, "getAnansiQuote error");
+
+  await withServer(async (base, h) => {
+    h.quoteRpc = mockBaseRpc();
+    const http = await (await fetch(base + "/v1/anansi/quote")).json();
+    assert.ok(http.quotes && http.quotes.length >= 1);
+    assert.ok(http.token && http.pool);
+    assertQuoteHasNoCheckoutPitch(http, "HTTP /v1/anansi/quote");
+    const mcp = await (await fetch(base + "/mcp", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "quote_anansi", arguments: {} } }) })).json();
+    const tool = mcp.result.structuredContent;
+    assert.ok(tool.quotes && tool.quotes.length >= 1);
+    assertQuoteHasNoCheckoutPitch(tool, "MCP quote_anansi");
+  });
 });

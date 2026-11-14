@@ -45,6 +45,20 @@ export const WARNING = [
 ];
 export const USDC_NOTE = "You don't need ANANSI to use the Haven's free tools, and services can also be paid in Base USDC. Paying with $ANANSI on Base gives a live 20% utility discount at /checkout: $0.80/mo for the 100 MB E2E Encrypted Room (vs. $1.00 USDC, via POST /v1/house/plan with {\"plan\":\"room\",\"months\":1,\"pay_with\":\"anansi\"}) and $39.20 in $ANANSI for the $49 Agent Integration Sprint (via POST /v1/sprint/invoice with {\"pay_with\":\"anansi\"} or /checkout).";
 
+
+const checkoutOn = () => !!(CFG.PAYMENTS.enabled && CFG.PLANS.checkout);
+
+/** Drop live-checkout pay fields from a quote payload while payments are paused. */
+export function publicQuote(v) {
+  if (!v || checkoutOn()) return v;
+  const links = v.links ? { ...v.links } : v.links;
+  if (links) { delete links.checkout; delete links.checkout_options; }
+  const utility = v.utility ? { ...v.utility } : v.utility;
+  if (utility) delete utility.discounts;
+  const { usdc_credits, ...rest } = v;
+  return { ...rest, ...(links ? { links } : {}), ...(utility ? { utility } : {}) };
+}
+
 export function encodeQuoteExactInputSingle(tokenIn, tokenOut, amountIn, fee, sqrtPriceLimitX96 = 0n) {
   return SEL.quoteExactInputSingle + pad(tokenIn) + pad(tokenOut) + pad(BigInt(amountIn).toString(16)) + pad(BigInt(fee).toString(16)) + pad(BigInt(sqrtPriceLimitX96).toString(16));
 }
@@ -198,7 +212,7 @@ export async function quoteAnansi({ rpc = makeRpc(), amountsUsd = G.amountsUsd, 
 let cache = null;
 export async function getAnansiQuote({ rpc, fetchImpl = globalThis.fetch, force = false, customUsd, recipient, slippageBps } = {}) {
   const hasCustom = customUsd != null || recipient != null || slippageBps != null;
-  if (!force && !rpc && !hasCustom && cache && Date.now() - cache.t < G.cacheMs) return cache.v;
+  if (!force && !rpc && !hasCustom && cache && Date.now() - cache.t < G.cacheMs) return publicQuote(cache.v);
   const rpcs = rpc ? [rpc] : G.rpcUrls.map((u) => makeRpc(fetchImpl, u));
   let best = null; let lastErr = null;
   for (const r of rpcs) {
@@ -209,6 +223,6 @@ export async function getAnansiQuote({ rpc, fetchImpl = globalThis.fetch, force 
       if (okCount === v.quotes.length) break;
     } catch (e) { lastErr = e; }
   }
-  if (best) { if (!rpc && !hasCustom) cache = { t: Date.now(), v: best }; return best; }
-  return { ok: false, error: `live quote unavailable: ${lastErr?.message}`, token: G.token, pool: G.pool, swap_url: UNISWAP_URL, pool_url: POOL_URL, links: LINKS, utility: UTILITY, warning: WARNING, usdc_credits: USDC_NOTE };
+  if (best) { if (!rpc && !hasCustom) cache = { t: Date.now(), v: best }; return publicQuote(best); }
+  return publicQuote({ ok: false, error: `live quote unavailable: ${lastErr?.message}`, token: G.token, pool: G.pool, swap_url: UNISWAP_URL, pool_url: POOL_URL, links: LINKS, utility: UTILITY, warning: WARNING, usdc_credits: USDC_NOTE });
 }
