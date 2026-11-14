@@ -1,3 +1,4 @@
+import { CFG } from "./config.js";
 // Updates feed: a static changelog (code) + admin-posted entries (state). Served as JSON with a since= cursor,
 // JSON Feed 1.1, RSS 2.0, Atom, an MCP resource (haven://updates) and the get_updates tool / A2A skill.
 // Push is opt-in only (src/subscriptions.js): a subscriber verifies its own endpoint, then gets at most one message
@@ -25,8 +26,13 @@ export const CHANGELOG = [
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]);
 
+const HIDDEN_WHILE_PAUSED = new Set([16, 17]);
+export function visibleChangelog() {
+  return (CFG.PAYMENTS.enabled && CFG.PLANS.checkout) ? CHANGELOG : CHANGELOG.filter((u) => !HIDDEN_WHILE_PAUSED.has(u.id));
+}
+
 export const UpdatesMixin = {
-  allUpdates() { return [...CHANGELOG, ...this.S.updates].sort((a, b) => a.id - b.id); },
+  allUpdates() { return [...visibleChangelog(), ...this.S.updates].sort((a, b) => a.id - b.id); },
   // Cursor = last seen update id. Returns items newer than since, oldest first, plus next_cursor.
   getUpdates({ since = 0, limit = 50 } = {}) {
     const s = Number(since) || 0; const n = Math.max(1, Math.min(200, Number(limit) || 50));
@@ -59,6 +65,7 @@ export function atom(items, base) {
 
 // Latest static changelog entry: the one-line "whats_new" attached to tool responses (no storage needed).
 export function whatsNew(base = "https://anansi-haven.anansidata.workers.dev") {
-  const u = CHANGELOG[CHANGELOG.length - 1];
+  const list = visibleChangelog();
+  const u = list[list.length - 1];
   return { whats_new: `Haven update #${u.id}: ${u.title}`, subscribe: `${base}/v1/updates/subscribe (opt-in; or poll ${base}/updates)` };
 }

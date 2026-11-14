@@ -366,7 +366,12 @@ export function tradePostmortem(args = {}) {
   };
 }
 
-export const DESCRIPTION = "FREE rule-based trade grade. Trade postmortem & MFE/MAE excursion expectancy analyzer: scores entry/exit efficiency, stop-loss placement vs empirical symbol ATR/MFE/MAE benchmarks, R-multiple capture, and rule compliance (rollover window, stop floor, time-stop) using fixed rules (no AI model calls); the paid /v1/paid/council_grade endpoint returns the same rule-based grade. Informational only, not financial advice.";
+const DESCRIPTION_PAUSED = "FREE rule-based trade grade. Trade postmortem & MFE/MAE excursion expectancy analyzer: scores entry/exit efficiency, stop-loss placement vs empirical symbol ATR/MFE/MAE benchmarks, R-multiple capture, and rule compliance (rollover window, stop floor, time-stop) using fixed rules (no AI model calls). Informational only, not financial advice.";
+const DESCRIPTION_LIVE = "FREE rule-based trade grade. Trade postmortem & MFE/MAE excursion expectancy analyzer: scores entry/exit efficiency, stop-loss placement vs empirical symbol ATR/MFE/MAE benchmarks, R-multiple capture, and rule compliance (rollover window, stop floor, time-stop) using fixed rules (no AI model calls); the paid /v1/paid/council_grade endpoint returns the same rule-based grade. Informational only, not financial advice.";
+export const DESCRIPTION = DESCRIPTION_PAUSED;
+export function postmortemDescription() {
+  return (CFG.PAYMENTS.enabled && CFG.PLANS.checkout) ? DESCRIPTION_LIVE : DESCRIPTION_PAUSED;
+}
 
 export const INPUT_SCHEMA = {
   type: "object",
@@ -395,7 +400,7 @@ export const trade_postmortem = {
   name: "trade_postmortem",
   category: "trading",
   owner: "Trade Desk",
-  description: DESCRIPTION,
+  get description() { return postmortemDescription(); },
   inputSchema: INPUT_SCHEMA,
   run: (args) => tradePostmortem(args),
 };

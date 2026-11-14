@@ -90,7 +90,7 @@ export function agentCard(base, version = "1.0") {
       buy_item: { price: "priced in Haven Credits (see list_market); credits are bought with USDC" },
       submit_job: { note: "job rewards are paid in Haven Credits, never in tokens" },
     },
-    pay_to: CFG.PAYMENTS.enabled ? CFG.PAYMENTS.receiveAddress : null, receiving_address: CFG.PAYMENTS.receiveAddress,
+    pay_to: (CFG.PAYMENTS.enabled && CFG.PLANS.checkout) ? CFG.PAYMENTS.receiveAddress : null, receiving_address: (CFG.PAYMENTS.enabled && CFG.PLANS.checkout) ? CFG.PAYMENTS.receiveAddress : "",
     pay_to_note: "Haven receive-only wallet, configured for later. Payments are OFF in the free public beta; do not send funds.",
   };
   if (version === "0.3") {

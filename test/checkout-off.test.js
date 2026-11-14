@@ -8,6 +8,7 @@ import { checkoutOptions, CHECKOUT_CATALOG } from "../src/checkout-page.js";
 import { getAnansiPage } from "../src/get-anansi-page.js";
 import { tradePostmortem } from "../src/contrib/trade-postmortem.js";
 import { fresh } from "./helpers.js";
+import { agentCard } from "../src/a2a.js";
 
 const SPLITTER = "0x6D7a2D65B26a87134c0571fb1baaA248eB0a291B";
 const hasSplitter = (v) => JSON.stringify(v).toLowerCase().includes(SPLITTER.toLowerCase());
@@ -131,4 +132,59 @@ test("trade_postmortem drops all upgrade/pro_upgrade copy while checkout is off"
   assert.doesNotMatch(toolRaw, /"pay_to"/);
   assert.doesNotMatch(toolRaw, /buy\.stripe\.com/i);
   assert.doesNotMatch(toolRaw, /upgrade_to_council_grade|"pro_upgrade"/);
+});
+
+test("quote_anansi tool description drops $0.50/$1/$5/$20/$50 tiers while checkout is off; the tool still runs", async () => {
+  const q = TOOLS.find((t) => t.name === "quote_anansi");
+  assert.doesNotMatch(q.description, /\$0\.50|\$5\/\$20\/\$50|\$20|\$50/);
+  const { h } = fresh();
+  // The tool is still registered and callable (this call may fail on RPC in unit tests; HTTP/MCP coverage is in discovery-anansi).
+  assert.equal(typeof q.run, "function");
+  assert.equal(q.auth, false);
+});
+
+test("updates feed hides items #16 and #17 while checkout is off", async () => withServer(async (base, h) => {
+  const feed = h.getUpdates({ since: 0, limit: 200 });
+  const ids = feed.items.map((u) => u.id);
+  assert.ok(!ids.includes(16), "changelog 16 hidden");
+  assert.ok(!ids.includes(17), "changelog 17 hidden");
+  assert.ok(ids.includes(18), "later paused-plan update still visible");
+  const rss = await (await fetch(base + "/updates.rss")).text();
+  const json = await (await fetch(base + "/updates.json")).json();
+  const atom = await (await fetch(base + "/updates.atom")).text();
+  for (const [name, body] of [["rss", rss], ["json", json], ["atom", atom], ["getUpdates", feed]]) {
+    const raw = typeof body === "string" ? body : JSON.stringify(body);
+    assert.doesNotMatch(raw, /v0\.8: \$ANANSI Base Pool Swap Calldata/);
+    assert.doesNotMatch(raw, /v0\.9: Live \$ANANSI 20% utility discount/);
+    assert.ok(!hasSplitter(body), name);
+  }
+}));
+
+test("Base Launch Week pack is omitted from the market listing while checkout is off", () => {
+  const { h } = fresh();
+  assert.equal(h.listMarket().find((i) => i.id === "anansi.pack.base-launch-week"), undefined);
+  const me = h.auth(h.registerAgent({ name: "buyer", ip: "192.0.2.81" }).api_key);
+  h.topupUsd(me.id, 5);
+  assert.throws(() => h.buyItem(me, "anansi.pack.base-launch-week"), (e) => e.status === 404 && e.code === "not_found");
+});
+
+test("A2A agent card blanks receiving_address while checkout is off", () => {
+  for (const v of ["1.0", "0.3"]) {
+    const c = agentCard("https://h", v);
+    const raw = JSON.stringify(c);
+    assert.doesNotMatch(raw, /0xC3Dae6139eaA6E0D0f941a4784dA3048B4767860/i);
+    assert.doesNotMatch(raw, /0x6D7a2D65B26a87134c0571fb1baaA248eB0a291B/i);
+    const params = ((c.capabilities && c.capabilities.extensions) || []).flatMap((e) => e.params ? [e.params] : []);
+    for (const p of params) assert.equal(p.receiving_address, "");
+  }
+});
+
+test("trade_postmortem and council_grade descriptions omit the paid endpoint and stay rule-based, not AI", () => {
+  for (const name of ["trade_postmortem", "council_grade"]) {
+    const t = TOOLS.find((x) => x.name === name);
+    assert.match(t.description, /rule-based/i);
+    assert.doesNotMatch(t.description, /\/v1\/paid\/council_grade/);
+    assert.match(t.description, /no AI model calls/);
+    assert.doesNotMatch(t.description, /4-model|AI Council/i);
+  }
 });

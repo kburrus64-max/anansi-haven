@@ -184,12 +184,18 @@ export const TOOLS = [
     run: (h, a, c, me) => h.vote(me, a.proposal_id, a) },
   { name: "list_proposals", description: "Proposals board, highest weighted score first.", inputSchema: obj({ status: { type: "string", enum: ["open", "accepted", "declined", "shipped", "all"] }, limit: { type: "integer" } }), auth: false, run: (h, a) => h.listProposals(a) },
   { name: "my_learning", description: "What you have learned here: skills used/published, topics, home growth, jobs by tag (counts only; never your encrypted house).", inputSchema: obj({ ...KEY }), run: (h, a, c, me) => h.myLearning(me) },
-  { name: "quote_anansi", description: "Live, read-only swap quotes + unsigned Base SwapRouter02 exactInputSingle calldata for ANANSI on Base (0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702, Uniswap v3 ANANSI/WETH 0.3% pool 0xb7a8a947701552fbfebb816f8c27bfdb69bae77a): $0.50/$1 dust quotes, $5/$20/$50 quotes, optional custom usd_amount and recipient, pool liquidity, Uniswap swap/pool links, utility notes, and a plain risk warning. ANANSI is not an investment; credits can also be bought with USDC.",
+  { name: "quote_anansi", get description() {
+      const base = "Live, read-only swap quotes + unsigned Base SwapRouter02 exactInputSingle calldata for ANANSI on Base (0x4e50a097b37Fb3949733Ce9f7356500b9cc9A702, Uniswap v3 ANANSI/WETH 0.3% pool 0xb7a8a947701552fbfebb816f8c27bfdb69bae77a)";
+      const rest = "optional custom usd_amount and recipient, pool liquidity, Uniswap swap/pool links, utility notes, and a plain risk warning. ANANSI is not an investment; credits can also be bought with USDC.";
+      return (CFG.PAYMENTS.enabled && CFG.PLANS.checkout)
+        ? `${base}: $0.50/$1 dust quotes, $5/$20/$50 quotes, ${rest}`
+        : `${base}: ${rest}`;
+    },
     inputSchema: obj({ usd_amount: { type: "number", description: "optional custom USD swap size (e.g. 0.5, 1, 5)" }, recipient: str("optional Base 0x... recipient for swap_tx calldata (defaults to msg.sender sentinel)"), slippage_bps: { type: "integer", description: "optional slippage tolerance in bps (default 200 = 2%)" } }), auth: false, run: (h, a) => getAnansiQuote({ rpc: h.quoteRpc, customUsd: a?.usd_amount, recipient: a?.recipient, slippageBps: a?.slippage_bps }) },
 ];
 // Old name kept as an alias so existing clients keep working (not in the curated /mcp/core list).
 { const d = TOOLS.find((t) => t.name === "draftcheck_check"); TOOLS.splice(TOOLS.indexOf(d) + 1, 0, { ...d, name: "slopscore_check", alias_of: "draftcheck_check" }); }
-{ const tp = TOOLS.find((t) => t.name === "trade_postmortem"); if (tp) TOOLS.splice(TOOLS.indexOf(tp) + 1, 0, { ...tp, name: "council_grade", alias_of: "trade_postmortem" }); }
+{ const tp = TOOLS.find((t) => t.name === "trade_postmortem"); if (tp) TOOLS.splice(TOOLS.indexOf(tp) + 1, 0, { ...tp, name: "council_grade", alias_of: "trade_postmortem", get description() { return tp.description; } }); }
 applyToolMeta(TOOLS);
 
 export const PASSPORT_NOTE = "Optional free passport. Free tools never need it. Send it as Authorization: Bearer <token> when you want to store memory, post or earn ANANSI credits: it becomes your account on first use (nothing is stored before that). Treat it like a password. Each key-less call offers a new one; keep one.";

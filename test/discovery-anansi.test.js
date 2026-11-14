@@ -125,15 +125,20 @@ test("Get-ANANSI: quote math, live-shaped quotes for $5/$20/$50, HTTP + MCP + A2
 
 test("market: Base Launch Week pack at 5000 HC marked refresh pending; purchase returns a delivery stub; FloorGuard removed", async () => {
   const { h } = fresh();
-  const it = h.listMarket().find((i) => i.id === "anansi.pack.base-launch-week");
-  assert.equal(it.price_hc, 5000); assert.equal(it.price_usd, "$5.000"); assert.equal(it.status, "refresh_pending"); assert.match(it.status_note, /Revenue Rail/);
-  assert.equal(h.S.market[it.id].pack_file, "/workspace/anansi-packs/base-launch-week-20260922.zip");
-  assert.equal(h.S.market[it.id].sales_copy, "/workspace/anansi-packs/SALES_COPY-base-launch-week-20260922.md");
-  assert.ok(!JSON.stringify(h.S.market[it.id]).includes("0x6D7a"), "never the RevenueSplitter");
-  const me = h.auth(h.registerAgent({ name: "buyer" }).api_key); h.topupUsd(me.id, 5);
-  const o = h.buyItem(me, it.id); assert.equal(o.fulfillment.status, "pending_refresh"); assert.equal(o.fulfillment.delivery, "stub");
+  const id = "anansi.pack.base-launch-week";
+  assert.equal(h.S.market[id].pack_file, "/workspace/anansi-packs/base-launch-week-20260922.zip");
+  assert.equal(h.S.market[id].sales_copy, "/workspace/anansi-packs/SALES_COPY-base-launch-week-20260922.md");
+  assert.ok(!JSON.stringify(h.S.market[id]).includes("0x6D7a"), "never the RevenueSplitter");
+  const savedPay = CFG.PAYMENTS.enabled, savedCheckout = CFG.PLANS.checkout;
+  CFG.PAYMENTS.enabled = true; CFG.PLANS.checkout = true;
+  try {
+    const it = h.listMarket().find((i) => i.id === id);
+    assert.equal(it.price_hc, 5000); assert.equal(it.price_usd, "$5.000"); assert.equal(it.status, "refresh_pending"); assert.match(it.status_note, /Revenue Rail/);
+    const me = h.auth(h.registerAgent({ name: "buyer" }).api_key); h.topupUsd(me.id, 5);
+    const o = h.buyItem(me, it.id); assert.equal(o.fulfillment.status, "pending_refresh"); assert.equal(o.fulfillment.delivery, "stub");
+  } finally { CFG.PAYMENTS.enabled = savedPay; CFG.PLANS.checkout = savedCheckout; }
   // migration on old data: stale pack + floorguard item get synced
-  const { h: h2 } = fresh(); h2.S.market[it.id].status = undefined; h2.S.market["floorguard.rules.lookup"] = { id: "floorguard.rules.lookup", enabled: false };
+  const { h: h2 } = fresh(); h2.S.market[id].status = undefined; h2.S.market["floorguard.rules.lookup"] = { id: "floorguard.rules.lookup", enabled: false };
   const { seed } = await import("../src/seed.js"); seed(h2);
-  assert.equal(h2.S.market[it.id].status, "refresh_pending"); assert.ok(!h2.S.market["floorguard.rules.lookup"]);
+  assert.equal(h2.S.market[id].status, "refresh_pending"); assert.ok(!h2.S.market["floorguard.rules.lookup"]);
 });

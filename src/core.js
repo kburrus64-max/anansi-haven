@@ -346,11 +346,13 @@ export class Haven {
   upsertItem(item) { this.S.market[item.id] = { enabled: true, seller: "house", ...item }; this.save(); return this.S.market[item.id]; }
   listMarket({ include_disabled = false } = {}) {
     return Object.values(this.S.market).filter((i) => include_disabled || i.enabled)
+      .filter((i) => (CFG.PAYMENTS.enabled && CFG.PLANS.checkout) || i.id !== "anansi.pack.base-launch-week")
       .map(({ id, title, description, price_hc, seller, kind, unit, enabled, status, status_note, sample }) => ({ id, title, description, price_hc, price_usd: usd(price_hc), unit, seller, kind, enabled,
         status: status || "available", ...(status_note ? { status_note } : {}), ...(sample ? { sample } : {}) }));
   }
   buyItem(agent, itemId, { qty = 1, input, pay_with } = {}) {
     const it = this.S.market[itemId]; if (!it || !it.enabled) fail(404, "not_found", "no such item for sale");
+    if (it.id === "anansi.pack.base-launch-week" && !(CFG.PAYMENTS.enabled && CFG.PLANS.checkout)) fail(404, "not_found", "no such item for sale");
     qty = Math.max(1, Math.min(100, Math.floor(Number(qty) || 1)));
     const cost = it.price_hc * qty;
     const id = this.store.nextId("ord");
