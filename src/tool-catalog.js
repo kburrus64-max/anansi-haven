@@ -39,7 +39,7 @@ function capsOf(text) {
   return hits.sort((a, b) => b[1] - a[1]).map(([c]) => c).slice(0, 4);
 }
 const HAVEN_CAPS = { prop_firm_rules: ["prop-firm-risk", "markets-finance"], slopscore_check: ["writing-content"], anansi_free_data: ["llm-pricing", "data-statistics"],
-  time_tools: ["time-calendar"], market_hours: ["time-calendar", "markets-finance"], unit_convert: ["math-units"], calculate: ["math-units"], text_tools: ["writing-content", "developer-tools"],
+  time_tools: ["time-calendar"], market_hours: ["time-calendar", "markets-finance"], cron_describe: ["time-calendar", "developer-tools"], unit_convert: ["math-units"], calculate: ["math-units"], text_tools: ["writing-content", "developer-tools"],
   json_validate: ["developer-tools"], uuid_hash: ["developer-tools"], url_metadata: ["web-scraping"] };
 
 function havenEntries(base) {

@@ -108,8 +108,9 @@ test("forex_market_hours: bad input", () => {
 
 test("trading tools are registered as free stateless tools, A2A skills, and no longer planned", async () => {
   const { h } = fresh();
-  assert.deepEqual(CONTRIB_TOOLS.map((t) => t.name), ["position_size", "forex_market_hours"]);
-  for (const t of CONTRIB_TOOLS) { assert.equal(t.category, "trading"); assert.equal(t.owner, "Trade Desk"); }
+  const tradeDesk = CONTRIB_TOOLS.filter((t) => t.owner === "Trade Desk");
+  assert.deepEqual(tradeDesk.map((t) => t.name), ["position_size", "forex_market_hours"]);
+  for (const t of tradeDesk) { assert.equal(t.category, "trading"); assert.equal(t.owner, "Trade Desk"); }
   assert.deepEqual(PLANNED_TOOLS.map((p) => p.name), ["economic_calendar"]);
   for (const name of ["position_size", "forex_market_hours"]) {
     const t = TOOLS.find((x) => x.name === name); assert.ok(t && t.free && t.auth === false && t.stateless, name);
